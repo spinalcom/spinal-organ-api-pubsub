@@ -8,7 +8,7 @@ declare class SpinalGraphUtils {
     private io;
     private constructor();
     static getInstance(): SpinalGraphUtils;
-    init(conn: spinal.FileSystem): Promise<SpinalGraph>;
+    init(conn: spinal.FileSystem, graph?: SpinalGraph): Promise<SpinalGraph>;
     setIo(io: Server): void;
     getNode(nodeId: string | number, contextId?: string | number): Promise<SpinalNode<any>>;
     getNodeWithServerId(server_id: number): Promise<any>;

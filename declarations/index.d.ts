@@ -1,2 +1,3 @@
 import { Server } from 'socket.io';
-export declare function runSocketServer(hubConnection?: spinal.FileSystem, server?: Server): Promise<Server>;
+import { SpinalGraph } from 'spinal-env-viewer-graph-service';
+export declare function runSocketServer(server?: Server, hubConnection?: spinal.FileSystem, graph?: SpinalGraph): Promise<Server>;

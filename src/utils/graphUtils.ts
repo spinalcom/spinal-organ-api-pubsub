@@ -54,9 +54,9 @@ class SpinalGraphUtils {
         return this.instance;
     }
 
-    public async init(conn: spinal.FileSystem): Promise<SpinalGraph> {
+    public async init(conn: spinal.FileSystem, graph?: SpinalGraph): Promise<SpinalGraph> {
         this.spinalConnection = conn;
-        const old_graph = SpinalGraphService.getGraph();
+        const old_graph = graph || SpinalGraphService.getGraph();
         if (old_graph) return old_graph;
         return new Promise((resolve, reject) => {
             spinalCore.load(conn, config.file.path, async (graph: SpinalGraph) => {

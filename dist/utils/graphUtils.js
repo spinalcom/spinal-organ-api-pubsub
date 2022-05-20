@@ -62,10 +62,10 @@ class SpinalGraphUtils {
             this.instance = new SpinalGraphUtils();
         return this.instance;
     }
-    init(conn) {
+    init(conn, graph) {
         return __awaiter(this, void 0, void 0, function* () {
             this.spinalConnection = conn;
-            const old_graph = spinal_env_viewer_graph_service_1.SpinalGraphService.getGraph();
+            const old_graph = graph || spinal_env_viewer_graph_service_1.SpinalGraphService.getGraph();
             if (old_graph)
                 return old_graph;
             return new Promise((resolve, reject) => {

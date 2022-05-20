@@ -29,14 +29,15 @@ import { SocketHandler } from "./classes/socketHandlers"
 import { spinalCore } from 'spinal-core-connectorjs';
 import { storeMiddleWare } from './classes/socketMiddlewares';
 import sessionStorage from './classes/SessionStore';
+import { SpinalGraph } from 'spinal-env-viewer-graph-service';
 
-export async function runSocketServer(hubConnection?: spinal.FileSystem, server?: Server): Promise<Server> {
+export async function runSocketServer(server?: Server, hubConnection?: spinal.FileSystem, graph?: SpinalGraph): Promise<Server> {
     const app = server || config.server?.port || 8888;
     const io = new Server(app, { pingTimeout: 30000, pingInterval: 25000, maxHttpBufferSize: 1e8 });
     const connect = hubConnection || spinalCore.connect(`http://${config.spinalConnector.user}:${config.spinalConnector.password}@${config.spinalConnector.host}:${config.spinalConnector.port}/`)
 
     spinalGraphUtils.setIo(io);
-    await spinalGraphUtils.init(connect);
+    await spinalGraphUtils.init(connect, graph);
     await sessionStorage.init(connect);
 
     storeMiddleWare(io);
