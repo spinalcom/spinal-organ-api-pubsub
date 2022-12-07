@@ -32,8 +32,8 @@ import sessionStorage from './classes/SessionStore';
 import { SpinalGraph } from 'spinal-env-viewer-graph-service';
 
 export async function runSocketServer(server?: Server, hubConnection?: spinal.FileSystem, graph?: SpinalGraph): Promise<Server> {
-    const app = server || config.server?.port || 8888;
-    const io = new Server(app, { pingTimeout: 30000, pingInterval: 25000, maxHttpBufferSize: 1e8 });
+    let app = server || config.server?.port || 8888;
+    const io = new Server(app, { pingTimeout: 30000, pingInterval: 25000 });
     const connect = hubConnection || spinalCore.connect(`http://${config.spinalConnector.user}:${config.spinalConnector.password}@${config.spinalConnector.host}:${config.spinalConnector.port}/`)
 
     spinalGraphUtils.setIo(io);
@@ -46,6 +46,3 @@ export async function runSocketServer(server?: Server, hubConnection?: spinal.Fi
     console.log("socket server is running");
     return io;
 }
-
-
-if (config.runLocalServer == "true") runSocketServer();

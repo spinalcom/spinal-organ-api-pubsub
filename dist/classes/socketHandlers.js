@@ -42,29 +42,27 @@ class SocketHandler {
         this.connection();
     }
     connection() {
-        this.io.on("connection", (socket) => {
-            const sessionId = socket["sessionID"];
+        this.io.on("connection", (socket) => __awaiter(this, void 0, void 0, function* () {
+            const sessionId = this._getSessionId(socket);
             socket.emit(lib_1.SESSION_EVENT, sessionId);
             console.log(`${sessionId} is connected`);
             const old_subscribed_data = SessionStore_1.default.getSubscribedData(sessionId);
-            console.log(old_subscribed_data);
-            this.subscribe(socket, old_subscribed_data);
-            this.unsubscribe(socket);
-            this.disconnect(socket);
-        });
-    }
-    subscribe(socket, oldIds) {
-        socket.on(lib_1.SUBSCRIBE_EVENT, (...args) => __awaiter(this, void 0, void 0, function* () {
-            const sessionId = socket["sessionID"];
-            console.log("received subscribe request from", sessionId);
-            const { obj: nodes, ids: idsFormatted } = yield this._checkAndFormatParams(args, oldIds);
-            const result = idsFormatted.map((item) => (0, utils_1.getRoomNameFunc)(item.nodeId, item.contextId, nodes, item.options));
-            socket.emit(lib_1.SUBSCRIBED, result.length == 1 ? result[0] : result);
-            const idsToSave = yield this._bindNodes(socket, result, nodes);
-            SessionStore_1.default.saveSubscriptionData(sessionId, idsToSave);
+            console.log("old_subscribed_data", old_subscribed_data);
+            if (old_subscribed_data && old_subscribed_data.length > 0)
+                yield this._subscribe(socket, old_subscribed_data, true);
+            this.listenSubscribeEvent(socket);
+            this.listenUnsubscribeEvent(socket);
+            this.listenDisconnectEvent(socket);
         }));
     }
-    unsubscribe(socket) {
+    listenSubscribeEvent(socket) {
+        socket.on(lib_1.SUBSCRIBE_EVENT, (...args) => __awaiter(this, void 0, void 0, function* () {
+            const sessionId = this._getSessionId(socket);
+            console.log("get subscribe request from", sessionId);
+            this._subscribe(socket, args);
+        }));
+    }
+    listenUnsubscribeEvent(socket) {
         socket.on(lib_1.UNSUBSCRIBE_EVENT, (...args) => __awaiter(this, void 0, void 0, function* () {
             const sessionId = socket["sessionID"];
             console.log("received unsubscribe request from", sessionId);
@@ -75,9 +73,23 @@ class SocketHandler {
             SessionStore_1.default.deleteSubscriptionData(sessionId, idsToRemove);
         }));
     }
-    disconnect(socket) {
+    listenDisconnectEvent(socket) {
         socket.on("disconnect", (reason) => {
             console.log(`${socket["sessionID"]} is disconnected for reason : ${reason}`);
+        });
+    }
+    //////////////////////////////////////////
+    //              PRIVATES                //
+    //////////////////////////////////////////
+    _subscribe(socket, ids, save = true) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const sessionId = this._getSessionId(socket);
+            const { obj: nodes, ids: idsFormatted } = yield this._checkAndFormatParams(ids);
+            const result = idsFormatted.map((item) => (0, utils_1.getRoomNameFunc)(item.nodeId, item.contextId, nodes, item.options));
+            socket.emit(lib_1.SUBSCRIBED, result.length == 1 ? result[0] : result);
+            const idsToSave = yield this._bindNodes(socket, result, nodes);
+            if (save)
+                SessionStore_1.default.saveSubscriptionData(sessionId, idsToSave);
         });
     }
     _checkAndFormatParams(args, oldIds) {
@@ -114,6 +126,12 @@ class SocketHandler {
             }
             return arr;
         }, []);
+    }
+    _getSessionId(socket) {
+        if (socket["sessionId"])
+            return socket["sessionId"];
+        const { auth, header, query } = socket.handshake;
+        return (auth === null || auth === void 0 ? void 0 : auth.sessionId) || (header === null || header === void 0 ? void 0 : header.sessionId) || (query === null || query === void 0 ? void 0 : query.sessionId);
     }
 }
 exports.SocketHandler = SocketHandler;

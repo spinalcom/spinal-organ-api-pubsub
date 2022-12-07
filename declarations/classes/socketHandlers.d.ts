@@ -1,14 +1,15 @@
 import { Server, Socket } from "socket.io";
-import { INodeId } from '../lib';
 export declare class SocketHandler {
     private io;
     constructor(io: Server);
     connection(): void;
-    subscribe(socket: Socket, oldIds?: INodeId[]): void;
-    unsubscribe(socket: Socket): void;
-    disconnect(socket: Socket): void;
+    listenSubscribeEvent(socket: Socket): void;
+    listenUnsubscribeEvent(socket: Socket): void;
+    listenDisconnectEvent(socket: Socket): void;
+    private _subscribe;
     private _checkAndFormatParams;
     private _bindNodes;
     private _leaveRoom;
+    private _getSessionId;
 }
 export default SocketHandler;

@@ -27,12 +27,12 @@ import { v4 as uuidv4 } from "uuid";
 
 export function storeMiddleWare(io: Server) {
     io.use((socket: any, next) => {
-        const sessionID = socket.handshake.auth.sessionID;
+        const sessionID = socket.handshake.auth.sessionId || socket.handshake.query.sessionId;
 
         if (!sessionID) {
-            socket.sessionID = uuidv4();
+            socket.sessionId = uuidv4();
         } else {
-            socket.sessionID = sessionID;
+            socket.sessionId = sessionID;
         }
         next();
     })

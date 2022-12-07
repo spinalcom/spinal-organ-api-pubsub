@@ -27,12 +27,12 @@ exports.storeMiddleWare = void 0;
 const uuid_1 = require("uuid");
 function storeMiddleWare(io) {
     io.use((socket, next) => {
-        const sessionID = socket.handshake.auth.sessionID;
+        const sessionID = socket.handshake.auth.sessionId || socket.handshake.query.sessionId;
         if (!sessionID) {
-            socket.sessionID = (0, uuid_1.v4)();
+            socket.sessionId = (0, uuid_1.v4)();
         }
         else {
-            socket.sessionID = sessionID;
+            socket.sessionId = sessionID;
         }
         next();
     });

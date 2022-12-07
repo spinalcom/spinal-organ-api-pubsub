@@ -33,41 +33,30 @@ export class SocketHandler {
         this.connection();
     }
 
-    connection() {
-        this.io.on("connection", (socket: Socket) => {
-            const sessionId = socket["sessionID"];
+    public connection() {
+        this.io.on("connection", async (socket: Socket) => {
+            const sessionId = this._getSessionId(socket);
             socket.emit(SESSION_EVENT, sessionId);
             console.log(`${sessionId} is connected`);
 
             const old_subscribed_data = sessionStore.getSubscribedData(sessionId);
-
-            console.log(old_subscribed_data);
-
-            this.subscribe(socket, old_subscribed_data);
-            this.unsubscribe(socket);
-            this.disconnect(socket);
+            console.log("old_subscribed_data", old_subscribed_data)
+            if (old_subscribed_data && old_subscribed_data.length > 0) await this._subscribe(socket, old_subscribed_data, true);
+            this.listenSubscribeEvent(socket);
+            this.listenUnsubscribeEvent(socket);
+            this.listenDisconnectEvent(socket);
         })
     }
 
-    subscribe(socket: Socket, oldIds?: INodeId[]) {
+    public listenSubscribeEvent(socket: Socket) {
         socket.on(SUBSCRIBE_EVENT, async (...args) => {
-            const sessionId = socket["sessionID"];
-            console.log("received subscribe request from", sessionId);
-
-            const { obj: nodes, ids: idsFormatted } = await this._checkAndFormatParams(args, oldIds);
-
-            const result = idsFormatted.map((item) => getRoomNameFunc(item.nodeId, item.contextId, nodes, item.options));
-
-            socket.emit(SUBSCRIBED, result.length == 1 ? result[0] : result);
-
-            const idsToSave = await this._bindNodes(socket, result, nodes);
-
-            sessionStore.saveSubscriptionData(sessionId, idsToSave);
-
+            const sessionId = this._getSessionId(socket);
+            console.log("get subscribe request from", sessionId);
+            this._subscribe(socket, args)
         })
     }
 
-    unsubscribe(socket: Socket) {
+    public listenUnsubscribeEvent(socket: Socket) {
         socket.on(UNSUBSCRIBE_EVENT, async (...args) => {
             const sessionId = socket["sessionID"];
             console.log("received unsubscribe request from", sessionId);
@@ -80,10 +69,30 @@ export class SocketHandler {
         })
     }
 
-    disconnect(socket: Socket) {
+    public listenDisconnectEvent(socket: Socket) {
         socket.on("disconnect", (reason) => {
             console.log(`${socket["sessionID"]} is disconnected for reason : ${reason}`);
         })
+    }
+
+
+    //////////////////////////////////////////
+    //              PRIVATES                //
+    //////////////////////////////////////////
+
+
+    private async _subscribe(socket: Socket, ids: INodeId[], save: boolean = true) {
+        const sessionId = this._getSessionId(socket);
+
+        const { obj: nodes, ids: idsFormatted } = await this._checkAndFormatParams(ids);
+
+        const result = idsFormatted.map((item) => getRoomNameFunc(item.nodeId, item.contextId, nodes, item.options));
+
+        socket.emit(SUBSCRIBED, result.length == 1 ? result[0] : result);
+
+        const idsToSave = await this._bindNodes(socket, result, nodes);
+
+        if (save) sessionStore.saveSubscriptionData(sessionId, idsToSave);
     }
 
     private _checkAndFormatParams(args, oldIds?: INodeId[]): Promise<{ ids: INodeData[], obj: { [ke: string]: INodeData } }> {
@@ -127,6 +136,13 @@ export class SocketHandler {
 
             return arr;
         }, []);
+    }
+
+    private _getSessionId(socket: Socket): string {
+        if (socket["sessionId"]) return socket["sessionId"];
+
+        const { auth, header, query } = (<any>socket.handshake);
+        return auth?.sessionId || header?.sessionId || query?.sessionId;
     }
 }
 

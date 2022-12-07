@@ -43,8 +43,8 @@ const SessionStore_1 = require("./classes/SessionStore");
 function runSocketServer(server, hubConnection, graph) {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
-        const app = server || ((_a = config.server) === null || _a === void 0 ? void 0 : _a.port) || 8888;
-        const io = new socket_io_1.Server(app, { pingTimeout: 30000, pingInterval: 25000, maxHttpBufferSize: 1e8 });
+        let app = server || ((_a = config.server) === null || _a === void 0 ? void 0 : _a.port) || 8888;
+        const io = new socket_io_1.Server(app, { pingTimeout: 30000, pingInterval: 25000 });
         const connect = hubConnection || spinal_core_connectorjs_1.spinalCore.connect(`http://${config.spinalConnector.user}:${config.spinalConnector.password}@${config.spinalConnector.host}:${config.spinalConnector.port}/`);
         utils_1.spinalGraphUtils.setIo(io);
         yield utils_1.spinalGraphUtils.init(connect, graph);
@@ -56,6 +56,4 @@ function runSocketServer(server, hubConnection, graph) {
     });
 }
 exports.runSocketServer = runSocketServer;
-if (config.runLocalServer == "true")
-    runSocketServer();
 //# sourceMappingURL=index.js.map
