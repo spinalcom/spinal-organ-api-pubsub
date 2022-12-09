@@ -8,13 +8,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __asyncValues = (this && this.__asyncValues) || function (o) {
-    if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
-    var m = o[Symbol.asyncIterator], i;
-    return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i);
-    function verb(n) { i[n] = o[n] && function (v) { return new Promise(function (resolve, reject) { v = o[n](v), settle(resolve, reject, v.done, v.value); }); }; }
-    function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.spinalGraphUtils = void 0;
 /*
@@ -125,35 +118,34 @@ class SpinalGraphUtils {
         });
     }
     getNodeWithStaticId(nodeId, contextId) {
-        var e_1, _a;
         return __awaiter(this, void 0, void 0, function* () {
             if (nodeId === contextId) {
                 return this.getContext(nodeId);
             }
             const context = yield this.getContext(contextId);
             if (context instanceof spinal_env_viewer_graph_service_1.SpinalContext) {
-                const queue = [context];
-                while (queue.length > 0) {
-                    const tail = queue.shift();
-                    try {
-                        for (var _b = (e_1 = void 0, __asyncValues(tail.visitChildrenInContext(context))), _c; _c = yield _b.next(), !_c.done;) {
-                            const node = _c.value;
-                            if (node.getId().get() === nodeId) {
-                                // @ts-ignore
-                                spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(node);
-                                return node;
-                            }
-                            queue.push(node);
-                        }
+                const found = yield context.findInContext(context, (node, stop) => {
+                    if (node.getId().get() === nodeId) {
+                        // @ts-ignore
+                        spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(node);
+                        stop();
+                        return true;
                     }
-                    catch (e_1_1) { e_1 = { error: e_1_1 }; }
-                    finally {
-                        try {
-                            if (_c && !_c.done && (_a = _b.return)) yield _a.call(_b);
-                        }
-                        finally { if (e_1) throw e_1.error; }
-                    }
-                }
+                    return false;
+                });
+                return Array.isArray(found) ? found[0] : found;
+                // const queue = [context];
+                // while (queue.length > 0) {
+                //     const tail = queue.shift();
+                //     for await (const node of tail.visitChildrenInContext(context)) {
+                //         if (node.getId().get() === nodeId) {
+                //             // @ts-ignore
+                //             SpinalGraphService._addNode(node);
+                //             return node;
+                //         }
+                //         queue.push(node);
+                //     }
+                // }
             }
         });
     }
