@@ -119,14 +119,23 @@ class SpinalGraphUtils {
         }
 
         const context = await this.getContext(contextId);
+
         if (context instanceof SpinalContext) {
-            for await (const node of context.visitChildrenInContext(context)) {
-                if (node.getId().get() === nodeId) {
-                    // @ts-ignore
-                    SpinalGraphService._addNode(node);
-                    return node;
+            const queue = [context];
+
+            while (queue.length > 0) {
+                const tail = queue.shift();
+                for await (const node of tail.visitChildrenInContext(context)) {
+                    if (node.getId().get() === nodeId) {
+                        // @ts-ignore
+                        SpinalGraphService._addNode(node);
+                        return node;
+                    }
+
+                    queue.push(node);
                 }
             }
+
         }
     }
 

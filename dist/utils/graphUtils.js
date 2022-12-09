@@ -132,22 +132,27 @@ class SpinalGraphUtils {
             }
             const context = yield this.getContext(contextId);
             if (context instanceof spinal_env_viewer_graph_service_1.SpinalContext) {
-                try {
-                    for (var _b = __asyncValues(context.visitChildrenInContext(context)), _c; _c = yield _b.next(), !_c.done;) {
-                        const node = _c.value;
-                        if (node.getId().get() === nodeId) {
-                            // @ts-ignore
-                            spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(node);
-                            return node;
+                const queue = [context];
+                while (queue.length > 0) {
+                    const tail = queue.shift();
+                    try {
+                        for (var _b = (e_1 = void 0, __asyncValues(tail.visitChildrenInContext(context))), _c; _c = yield _b.next(), !_c.done;) {
+                            const node = _c.value;
+                            if (node.getId().get() === nodeId) {
+                                // @ts-ignore
+                                spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(node);
+                                return node;
+                            }
+                            queue.push(node);
                         }
                     }
-                }
-                catch (e_1_1) { e_1 = { error: e_1_1 }; }
-                finally {
-                    try {
-                        if (_c && !_c.done && (_a = _b.return)) yield _a.call(_b);
+                    catch (e_1_1) { e_1 = { error: e_1_1 }; }
+                    finally {
+                        try {
+                            if (_c && !_c.done && (_a = _b.return)) yield _a.call(_b);
+                        }
+                        finally { if (e_1) throw e_1.error; }
                     }
-                    finally { if (e_1) throw e_1.error; }
                 }
             }
         });
