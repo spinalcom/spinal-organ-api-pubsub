@@ -23,7 +23,7 @@
  */
 
 import { Server } from 'socket.io';
-import * as config from "../config"
+import { config } from "./config"
 import { spinalGraphUtils } from './utils';
 import { SocketHandler } from "./classes/socketHandlers"
 import { spinalCore } from 'spinal-core-connectorjs';
@@ -32,9 +32,9 @@ import sessionStorage from './classes/SessionStore';
 import { SpinalGraph } from 'spinal-env-viewer-graph-service';
 
 export async function runSocketServer(server?: Server, hubConnection?: spinal.FileSystem, graph?: SpinalGraph): Promise<Server> {
-    let app = server || config.server?.port || 8888;
+    let app: any = server || config.server?.port || 8888;
     const io = new Server(app, { pingTimeout: 30000, pingInterval: 25000 });
-    const connect = hubConnection || spinalCore.connect(`http://${config.spinalConnector.user}:${config.spinalConnector.password}@${config.spinalConnector.host}:${config.spinalConnector.port}/`)
+    const connect = hubConnection || spinalCore.connect(`${config.spinalConnector.protocol}://${config.spinalConnector.user}:${config.spinalConnector.password}@${config.spinalConnector.host}:${config.spinalConnector.port}`)
 
     spinalGraphUtils.setIo(io);
     await spinalGraphUtils.init(connect, graph);

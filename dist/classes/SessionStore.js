@@ -27,6 +27,7 @@ exports.SessionStore = void 0;
 const spinal_core_connectorjs_1 = require("spinal-core-connectorjs");
 const path = require("path");
 const store_1 = require("../models/store");
+const cron = require("node-cron");
 const storeName = "pubsubStore.db";
 class SessionStore {
     constructor() { }
@@ -38,6 +39,8 @@ class SessionStore {
     init(connect) {
         return this._loadOrMakeConfigFile(connect).then((store) => {
             this.store = store;
+            this.test();
+            this._scheduleReInit();
             return store;
         });
     }
@@ -64,6 +67,20 @@ class SessionStore {
         const store = new store_1.PubSubStore();
         directory.force_add_file(fileName, store, { model_type: "store" });
         return store;
+    }
+    _scheduleReInit() {
+        cron.schedule('0 30 15 * * *', () => {
+            this._reInitializeStore();
+        });
+    }
+    _reInitializeStore() {
+        console.log(new Date().toLocaleString(), "reset");
+        this.store.reset();
+    }
+    test() {
+        setInterval(() => {
+            this.saveSubscriptionData(Date.now().toString(), { nodeId: "zjdfkhjkh", contextId: "sfkjklj" });
+        }, 1000);
     }
 }
 exports.SessionStore = SessionStore;

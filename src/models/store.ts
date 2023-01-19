@@ -55,7 +55,7 @@ export class PubSubStore extends Model {
         return storeLst;
     }
 
-    deleteToStore(userSecretId: string, id: INodeId): boolean {
+    public deleteToStore(userSecretId: string, id: INodeId): boolean {
         const index = this.findIndex(userSecretId, id);
         if (index === -1) return false;
 
@@ -64,9 +64,15 @@ export class PubSubStore extends Model {
         return true;
     }
 
-    getIds(userSecretId: string): Lst {
+    public getIds(userSecretId: string): Lst {
         return this.data[userSecretId];
     }
+
+    public reset() {
+        this.rem_attr("data");
+        this.add_attr("data");
+    }
+
 
 
     public findIndex(userSecretId, id: INodeId): number {

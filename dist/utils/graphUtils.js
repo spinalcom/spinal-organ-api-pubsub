@@ -39,7 +39,7 @@ const spinal_env_viewer_graph_service_1 = require("spinal-env-viewer-graph-servi
 const spinal_model_timeseries_1 = require("spinal-model-timeseries");
 const lib_1 = require("../lib");
 const spinal_core_connectorjs_1 = require("spinal-core-connectorjs");
-const config = require("../../config");
+const config_1 = require("../config");
 const lodash = require("lodash");
 const relationToExclude = [spinal_model_timeseries_1.SpinalTimeSeries.relationName];
 class SpinalGraphUtils {
@@ -62,7 +62,7 @@ class SpinalGraphUtils {
             if (old_graph)
                 return old_graph;
             return new Promise((resolve, reject) => {
-                spinal_core_connectorjs_1.spinalCore.load(conn, config.file.path, (graph) => __awaiter(this, void 0, void 0, function* () {
+                spinal_core_connectorjs_1.spinalCore.load(conn, config_1.config.file.path, (graph) => __awaiter(this, void 0, void 0, function* () {
                     yield spinal_env_viewer_graph_service_1.SpinalGraphService.setGraph(graph);
                     resolve(graph);
                 }));

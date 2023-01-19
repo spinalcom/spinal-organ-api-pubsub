@@ -28,7 +28,7 @@ import { SpinalTimeSeries } from "spinal-model-timeseries";
 import { OK_STATUS, EVENT_NAMES, IAction, IScope, ISubscribeOptions } from '../lib';
 import { Model, FileSystem, spinalCore } from "spinal-core-connectorjs";
 import { Server } from "socket.io";
-import * as config from "../../config";
+import { config } from "../config";
 import * as lodash from "lodash";
 
 

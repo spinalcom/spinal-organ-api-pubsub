@@ -62,6 +62,10 @@ class PubSubStore extends spinal_core_connectorjs_1.Model {
     getIds(userSecretId) {
         return this.data[userSecretId];
     }
+    reset() {
+        this.rem_attr("data");
+        this.add_attr("data");
+    }
     findIndex(userSecretId, id) {
         const data = this.getIds(userSecretId);
         if (data) {

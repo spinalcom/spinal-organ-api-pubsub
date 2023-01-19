@@ -34,7 +34,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.runSocketServer = void 0;
 const socket_io_1 = require("socket.io");
-const config = require("../config");
+const config_1 = require("./config");
 const utils_1 = require("./utils");
 const socketHandlers_1 = require("./classes/socketHandlers");
 const spinal_core_connectorjs_1 = require("spinal-core-connectorjs");
@@ -43,9 +43,9 @@ const SessionStore_1 = require("./classes/SessionStore");
 function runSocketServer(server, hubConnection, graph) {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
-        let app = server || ((_a = config.server) === null || _a === void 0 ? void 0 : _a.port) || 8888;
+        let app = server || ((_a = config_1.config.server) === null || _a === void 0 ? void 0 : _a.port) || 8888;
         const io = new socket_io_1.Server(app, { pingTimeout: 30000, pingInterval: 25000 });
-        const connect = hubConnection || spinal_core_connectorjs_1.spinalCore.connect(`http://${config.spinalConnector.user}:${config.spinalConnector.password}@${config.spinalConnector.host}:${config.spinalConnector.port}/`);
+        const connect = hubConnection || spinal_core_connectorjs_1.spinalCore.connect(`${config_1.config.spinalConnector.protocol}://${config_1.config.spinalConnector.user}:${config_1.config.spinalConnector.password}@${config_1.config.spinalConnector.host}:${config_1.config.spinalConnector.port}`);
         utils_1.spinalGraphUtils.setIo(io);
         yield utils_1.spinalGraphUtils.init(connect, graph);
         yield SessionStore_1.default.init(connect);

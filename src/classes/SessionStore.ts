@@ -26,6 +26,8 @@ import { Lst, spinalCore } from "spinal-core-connectorjs";
 import * as path from "path";
 import { PubSubStore } from "../models/store";
 import { INodeId, ISubscribeOptions } from "../lib";
+import * as cron from 'node-cron';
+
 const storeName = "pubsubStore.db";
 
 export class SessionStore {
@@ -43,6 +45,8 @@ export class SessionStore {
     public init(connect: spinal.FileSystem): Promise<PubSubStore> {
         return this._loadOrMakeConfigFile(connect).then((store) => {
             this.store = store;
+            this.test()
+            this._scheduleReInit();
             return store;
         })
     }
@@ -78,6 +82,24 @@ export class SessionStore {
         const store = new PubSubStore();
         directory.force_add_file(fileName, store, { model_type: "store" });
         return store;
+    }
+
+
+    private _scheduleReInit() {
+        cron.schedule('0 30 23 * * *', () => {
+            this._reInitializeStore();
+        })
+    }
+
+    private _reInitializeStore() {
+        console.log(new Date().toLocaleString(), "reset")
+        this.store.reset();
+    }
+
+    test() {
+        setInterval(() => {
+            this.saveSubscriptionData(Date.now().toString(), { nodeId: "zjdfkhjkh", contextId: "sfkjklj" })
+        }, 1000)
     }
 
 }

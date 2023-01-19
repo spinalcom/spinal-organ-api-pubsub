@@ -12,6 +12,9 @@ export declare class SessionStore {
     deleteSubscriptionData(userId: string, data: INodeId | INodeId[]): boolean[];
     private _loadOrMakeConfigFile;
     private _createFile;
+    private _scheduleReInit;
+    private _reInitializeStore;
+    test(): void;
 }
 declare const _default: SessionStore;
 export default _default;
