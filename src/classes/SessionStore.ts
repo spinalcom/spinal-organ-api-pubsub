@@ -45,7 +45,7 @@ export class SessionStore {
     public init(connect: spinal.FileSystem): Promise<PubSubStore> {
         return this._loadOrMakeConfigFile(connect).then((store) => {
             this.store = store;
-            this.test()
+            // this.test()
             this._scheduleReInit();
             return store;
         })
@@ -86,7 +86,7 @@ export class SessionStore {
 
 
     private _scheduleReInit() {
-        cron.schedule('0 30 23 * * *', () => {
+        cron.schedule('0 0 23 * * *', () => {
             this._reInitializeStore();
         })
     }

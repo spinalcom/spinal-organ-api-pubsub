@@ -25,6 +25,7 @@
 import { Lst, Model, spinalCore } from "spinal-core-connectorjs";
 import { INodeId, ISubscribeOptions } from "../lib";
 import { v4 as uuidv4 } from "uuid";
+import { count } from "console";
 export class PubSubStore extends Model {
     constructor() {
         super();
@@ -69,10 +70,11 @@ export class PubSubStore extends Model {
     }
 
     public reset() {
-        this.rem_attr("data");
-        this.add_attr("data");
+        for (let key in this.data) {
+            this._deleteModelAttributes(this.data[key]);
+            this.data.rem_attr(key);
+        }
     }
-
 
 
     public findIndex(userSecretId, id: INodeId): number {
@@ -97,6 +99,26 @@ export class PubSubStore extends Model {
         if (firstOption.subscribeChildren === secondOption.subscribeChildren && firstOption.subscribeChildScope === secondOption.subscribeChildScope) return true;
         return false;
     }
+
+
+    private _deleteModelAttributes(model: spinal.Model) {
+        if (model instanceof Lst) {
+            for (let index = 0; index < model.length; index++) {
+                const element = model[index];
+                this._deleteModelAttributes(element);
+                model.remove(element);
+            }
+        } else if (model instanceof Model) {
+            for (const attribute in model) {
+                const element = model[attribute];
+                if (!(element instanceof Model) || element._attribute_names.length === 0) {
+                    model.rem_attr(attribute);
+                }
+                else this._deleteModelAttributes(element)
+            }
+        }
+    }
+
 }
 
 spinalCore.register_models(PubSubStore);

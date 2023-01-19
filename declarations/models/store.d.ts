@@ -8,4 +8,5 @@ export declare class PubSubStore extends Model {
     reset(): void;
     findIndex(userSecretId: any, id: INodeId): number;
     private _compareOptions;
+    private _deleteModelAttributes;
 }

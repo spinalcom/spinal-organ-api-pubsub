@@ -63,8 +63,10 @@ class PubSubStore extends spinal_core_connectorjs_1.Model {
         return this.data[userSecretId];
     }
     reset() {
-        this.rem_attr("data");
-        this.add_attr("data");
+        for (let key in this.data) {
+            this._deleteModelAttributes(this.data[key]);
+            this.data.rem_attr(key);
+        }
     }
     findIndex(userSecretId, id) {
         const data = this.getIds(userSecretId);
@@ -88,6 +90,25 @@ class PubSubStore extends spinal_core_connectorjs_1.Model {
         if (firstOption.subscribeChildren === secondOption.subscribeChildren && firstOption.subscribeChildScope === secondOption.subscribeChildScope)
             return true;
         return false;
+    }
+    _deleteModelAttributes(model) {
+        if (model instanceof spinal_core_connectorjs_1.Lst) {
+            for (let index = 0; index < model.length; index++) {
+                const element = model[index];
+                this._deleteModelAttributes(element);
+                model.remove(element);
+            }
+        }
+        else if (model instanceof spinal_core_connectorjs_1.Model) {
+            for (const attribute in model) {
+                const element = model[attribute];
+                if (!(element instanceof spinal_core_connectorjs_1.Model) || element._attribute_names.length === 0) {
+                    model.rem_attr(attribute);
+                }
+                else
+                    this._deleteModelAttributes(element);
+            }
+        }
     }
 }
 exports.PubSubStore = PubSubStore;

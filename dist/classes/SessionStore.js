@@ -39,7 +39,7 @@ class SessionStore {
     init(connect) {
         return this._loadOrMakeConfigFile(connect).then((store) => {
             this.store = store;
-            this.test();
+            // this.test()
             this._scheduleReInit();
             return store;
         });
@@ -69,7 +69,7 @@ class SessionStore {
         return store;
     }
     _scheduleReInit() {
-        cron.schedule('0 30 15 * * *', () => {
+        cron.schedule('0 0 23 * * *', () => {
             this._reInitializeStore();
         });
     }
