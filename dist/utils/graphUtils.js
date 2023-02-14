@@ -290,7 +290,7 @@ class SpinalGraphUtils {
             const status = lib_1.OK_STATUS;
             const dataFormatted = yield this._formatNode(node, model);
             const data = { event: action || { name: lib_1.EVENT_NAMES.updated, nodeId: node.getId().get() }, node: dataFormatted };
-            console.log(`(${dataFormatted.info.id} changed) send new data with socket`);
+            console.log(`(${dataFormatted.info.id} changed) send new data with socket`, data);
             this.io.to(eventName).emit(eventName, { data, status });
         });
     }
