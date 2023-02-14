@@ -74,7 +74,7 @@ class SessionStore {
         });
     }
     _reInitializeStore() {
-        console.log(new Date().toLocaleString(), "reset");
+        console.log("reset websocket session storage");
         this.store.reset();
     }
     test() {

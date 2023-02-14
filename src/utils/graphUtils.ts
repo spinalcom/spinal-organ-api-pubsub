@@ -257,9 +257,26 @@ class SpinalGraphUtils {
         let info = node.info;
         let element = await node.getElement(true);
 
-        const model = new Model({ info, element });
-        model.bind(lodash.debounce(() => this._sendSocketEvent(node, model.get(), eventName), 1000), false);
+        // const model = new Model({ info, element });
         // model.bind(lodash.debounce(() => callback(null, eventName, this._formatNode(model.get())), 1000), false);
+
+        info.bind(lodash.debounce(() => {
+            console.log(`(${info.id.get()} info changed) spinalCore bind execution`);
+            this._sendSocketEvent(node, {
+                info: info.get(),
+                element: element?.get()
+            }, eventName)
+        }, 1000), false);
+
+        if (element) {
+            element.bind(lodash.debounce(() => {
+                console.log(`(${info.id.get()} element changed) spinalCore bind execution`);
+                this._sendSocketEvent(node, {
+                    info: info.get(),
+                    element: element?.get()
+                }, eventName)
+            }, 1000), false);
+        }
 
     }
 
@@ -289,9 +306,10 @@ class SpinalGraphUtils {
 
     private async _sendSocketEvent(node: SpinalNode<any>, model: { info: { [key: string]: any }, element: { [key: string]: any } }, eventName: string, action?: IAction) {
         const status = OK_STATUS;
-        const data = { event: action || { name: EVENT_NAMES.updated, nodeId: node.getId().get() }, node: await this._formatNode(node, model) };
+        const dataFormatted = await this._formatNode(node, model);
+        const data = { event: action || { name: EVENT_NAMES.updated, nodeId: node.getId().get() }, node: dataFormatted };
 
-        console.log("send", data, "data");
+        console.log(`(${dataFormatted.info.id} changed) send new data with socket`);
 
         this.io.to(eventName).emit(eventName, { data, status });
     }

@@ -242,9 +242,24 @@ class SpinalGraphUtils {
             this._addNodeToBindedNode(nodeId, eventName, options);
             let info = node.info;
             let element = yield node.getElement(true);
-            const model = new spinal_core_connectorjs_1.Model({ info, element });
-            model.bind(lodash.debounce(() => this._sendSocketEvent(node, model.get(), eventName), 1000), false);
+            // const model = new Model({ info, element });
             // model.bind(lodash.debounce(() => callback(null, eventName, this._formatNode(model.get())), 1000), false);
+            info.bind(lodash.debounce(() => {
+                console.log(`(${info.id.get()} info changed) spinalCore bind execution`);
+                this._sendSocketEvent(node, {
+                    info: info.get(),
+                    element: element === null || element === void 0 ? void 0 : element.get()
+                }, eventName);
+            }, 1000), false);
+            if (element) {
+                element.bind(lodash.debounce(() => {
+                    console.log(`(${info.id.get()} element changed) spinalCore bind execution`);
+                    this._sendSocketEvent(node, {
+                        info: info.get(),
+                        element: element === null || element === void 0 ? void 0 : element.get()
+                    }, eventName);
+                }, 1000), false);
+            }
         });
     }
     _addNodeToBindedNode(nodeId, eventName, options) {
@@ -273,8 +288,9 @@ class SpinalGraphUtils {
     _sendSocketEvent(node, model, eventName, action) {
         return __awaiter(this, void 0, void 0, function* () {
             const status = lib_1.OK_STATUS;
-            const data = { event: action || { name: lib_1.EVENT_NAMES.updated, nodeId: node.getId().get() }, node: yield this._formatNode(node, model) };
-            console.log("send", data, "data");
+            const dataFormatted = yield this._formatNode(node, model);
+            const data = { event: action || { name: lib_1.EVENT_NAMES.updated, nodeId: node.getId().get() }, node: dataFormatted };
+            console.log(`(${dataFormatted.info.id} changed) send new data with socket`);
             this.io.to(eventName).emit(eventName, { data, status });
         });
     }

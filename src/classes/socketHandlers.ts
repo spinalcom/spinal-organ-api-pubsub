@@ -40,7 +40,6 @@ export class SocketHandler {
             console.log(`${sessionId} is connected`);
 
             const old_subscribed_data = sessionStore.getSubscribedData(sessionId);
-            console.log("old_subscribed_data", old_subscribed_data)
             if (old_subscribed_data && old_subscribed_data.length > 0) await this._subscribe(socket, old_subscribed_data, true);
             this.listenSubscribeEvent(socket);
             this.listenUnsubscribeEvent(socket);
@@ -58,7 +57,7 @@ export class SocketHandler {
 
     public listenUnsubscribeEvent(socket: Socket) {
         socket.on(UNSUBSCRIBE_EVENT, async (...args) => {
-            const sessionId = socket["sessionID"];
+            const sessionId = socket["sessionId"];
             console.log("received unsubscribe request from", sessionId);
             const { obj: nodes, ids: idsFormatted } = await this._checkAndFormatParams(args);
             const result = idsFormatted.map((item) => getRoomNameFunc(item.nodeId, item.contextId, nodes, item.options));
@@ -71,7 +70,7 @@ export class SocketHandler {
 
     public listenDisconnectEvent(socket: Socket) {
         socket.on("disconnect", (reason) => {
-            console.log(`${socket["sessionID"]} is disconnected for reason : ${reason}`);
+            console.log(`${socket["sessionId"]} is disconnected for reason : ${reason}`);
         })
     }
 
