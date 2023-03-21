@@ -44,6 +44,7 @@ const lodash = require("lodash");
 const relationToExclude = [spinal_model_timeseries_1.SpinalTimeSeries.relationName];
 class SpinalGraphUtils {
     constructor() {
+        // private nodeBinded: Map<string, { bindTypes: { [key: string]: string }, events: { [key: string]: string } }> = new Map();
         this.nodeBinded = new Map();
         this._listenAddChildEvent();
         this._listenAddChildInContextEvent();
@@ -97,6 +98,8 @@ class SpinalGraphUtils {
     }
     getContext(contextId) {
         return __awaiter(this, void 0, void 0, function* () {
+            if (typeof contextId === "undefined")
+                return;
             let node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(contextId.toString());
             if (node)
                 return node;
@@ -154,7 +157,7 @@ class SpinalGraphUtils {
             try {
                 // const model = new Model({ info, element });
                 const _eventName = eventName || node.getId().get();
-                yield this._bindInfoAndElement(_eventName, node, options);
+                yield this._bindInfoAndElement(node, context, _eventName, options);
                 // model.bind(lodash.debounce(() => callback(null, _eventName, this._formatNode(model.get())), 1000), false);
                 if (options.subscribeChildren) {
                     switch (options.subscribeChildScope) {
@@ -196,9 +199,59 @@ class SpinalGraphUtils {
             children.forEach((child) => this.bindNode(child, null, {}, eventName));
         });
     }
+    rebindAllNodes() {
+        return __awaiter(this, void 0, void 0, function* () {
+            this._unbindAllNodes();
+            const idsIter = this.nodeBinded.keys();
+            let item = idsIter.next();
+            for (; !item.done; item = idsIter.next()) {
+                yield this._rebindNode(item.value);
+            }
+        });
+    }
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////
     //                                      PRIVATE                                                          //
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+    _rebindNode(nodeId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const data = this.nodeBinded.get(nodeId);
+            if (!data)
+                return;
+            for (const event in data) {
+                if (Object.prototype.hasOwnProperty.call(data, event)) {
+                    const { server_id, context_id, eventName, options } = data[event];
+                    const node = spinal_core_connectorjs_1.FileSystem._objects[server_id];
+                    const context = context_id && spinal_core_connectorjs_1.FileSystem._objects[context_id];
+                    if (node)
+                        yield this.bindNode(node, context, options, eventName);
+                }
+            }
+        });
+    }
+    _unbindAllNodes() {
+        this.nodeBinded.forEach((value, key) => {
+            this._unbindNode(key);
+        });
+    }
+    _unbindNode(nodeId, eventNames) {
+        const data = this.nodeBinded.get(nodeId);
+        if (!data)
+            return;
+        let events = eventNames || Object.keys(data);
+        if (!Array.isArray(events))
+            events = [events];
+        events.forEach((name) => {
+            const bindProcesses = data[name].bindProcesses || [];
+            while (bindProcesses.length) {
+                const process = bindProcesses.pop();
+                this._unbindBindProcess(process);
+            }
+        });
+    }
+    _unbindBindProcess(process) {
+        const models = process._models;
+        return models.forEach(el => el.unbind(process));
+    }
     _bindAllChild(node) {
         return __awaiter(this, void 0, void 0, function* () {
             this._activeEventSender(node);
@@ -236,41 +289,51 @@ class SpinalGraphUtils {
         });
         return lodash.flattenDeep(t);
     }
-    _bindInfoAndElement(eventName, node, options = {}) {
+    _bindInfoAndElement(node, context, eventName, options = {}) {
+        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             const nodeId = node.getId().get();
-            this._addNodeToBindedNode(nodeId, eventName, options);
+            const _temp = this.nodeBinded.get(nodeId);
+            if (_temp && ((_b = (_a = _temp[eventName]) === null || _a === void 0 ? void 0 : _a.bindProcesses) === null || _b === void 0 ? void 0 : _b.length) > 0)
+                return;
+            const processes = [];
             let info = node.info;
             let element = yield node.getElement(true);
-            // const model = new Model({ info, element });
-            // model.bind(lodash.debounce(() => callback(null, eventName, this._formatNode(model.get())), 1000), false);
-            info.bind(lodash.debounce(() => {
+            let infoProcess = info.bind(lodash.debounce(() => {
                 console.log(`(${info.id.get()} info changed) spinalCore bind execution`);
                 this._sendSocketEvent(node, {
                     info: info.get(),
                     element: element === null || element === void 0 ? void 0 : element.get()
                 }, eventName);
             }, 1000), false);
+            processes.push(infoProcess);
             if (element) {
-                element.bind(lodash.debounce(() => {
+                const elementProcess = element.bind(lodash.debounce(() => {
                     console.log(`(${info.id.get()} element changed) spinalCore bind execution`);
                     this._sendSocketEvent(node, {
                         info: info.get(),
                         element: element === null || element === void 0 ? void 0 : element.get()
                     }, eventName);
                 }, 1000), false);
+                processes.push(elementProcess);
             }
+            this._addNodeToBindedNode(node, context, eventName, options, processes);
         });
     }
-    _addNodeToBindedNode(nodeId, eventName, options) {
-        const value = this.nodeBinded.get(nodeId) || { events: {}, bindTypes: {} };
-        value.events[eventName] = eventName;
-        if (options.subscribeChildren) {
-            const key = options.subscribeChildScope;
-            if (!!key)
-                value.bindTypes[key] = key;
+    _addNodeToBindedNode(node, context, eventName, options, processes) {
+        const nodeId = node.getId().get();
+        let registered = this.nodeBinded.get(nodeId);
+        if (!registered) {
+            registered = {};
+            this.nodeBinded.set(nodeId, registered);
         }
-        this.nodeBinded.set(nodeId, value);
+        let value = registered[eventName];
+        if (!value) {
+            value = { server_id: node._server_id, context_id: context === null || context === void 0 ? void 0 : context._server_id, bindProcesses: [], eventName, options };
+            registered[eventName] = value;
+        }
+        value.bindProcesses.push(...processes);
+        this.nodeBinded.set(nodeId, registered);
     }
     _formatNode(node, model) {
         return __awaiter(this, void 0, void 0, function* () {

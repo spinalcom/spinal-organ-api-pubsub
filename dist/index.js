@@ -32,10 +32,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.runSocketServer = void 0;
+exports.spinalGraphUtils = exports.runSocketServer = void 0;
 const socket_io_1 = require("socket.io");
 const config_1 = require("./config");
 const utils_1 = require("./utils");
+Object.defineProperty(exports, "spinalGraphUtils", { enumerable: true, get: function () { return utils_1.spinalGraphUtils; } });
 const socketHandlers_1 = require("./classes/socketHandlers");
 const spinal_core_connectorjs_1 = require("spinal-core-connectorjs");
 const socketMiddlewares_1 = require("./classes/socketMiddlewares");

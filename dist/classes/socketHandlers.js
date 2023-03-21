@@ -98,11 +98,12 @@ class SocketHandler {
         return (0, utils_1.checkAndFormatIds)(ids, options);
     }
     _bindNodes(socket, result, nodes) {
-        return result.reduce((arr, { error, nodeId, status, eventNames, options }) => {
+        return result.reduce((prom, { error, nodeId, status, eventNames, options }) => __awaiter(this, void 0, void 0, function* () {
+            const arr = yield prom;
             if (!error && status === lib_1.OK_STATUS) {
                 const { node, contextNode } = nodes[nodeId];
                 eventNames.forEach(roomId => socket.join(roomId));
-                utils_1.spinalGraphUtils.bindNode(node, contextNode, options);
+                yield utils_1.spinalGraphUtils.bindNode(node, contextNode, options);
                 arr.push({
                     nodeId: node.getId().get(),
                     contextId: contextNode.getId().get(),
@@ -110,7 +111,7 @@ class SocketHandler {
                 });
             }
             return arr;
-        }, []);
+        }), Promise.resolve([]));
     }
     _leaveRoom(socket, result, nodes) {
         return result.reduce((arr, { error, nodeId, status, eventNames, options }) => {

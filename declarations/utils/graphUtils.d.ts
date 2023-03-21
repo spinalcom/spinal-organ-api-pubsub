@@ -17,6 +17,11 @@ declare class SpinalGraphUtils {
     bindNode(node: SpinalNode<any>, context: SpinalContext<any>, options: ISubscribeOptions, eventName?: string): Promise<void>;
     bindContextTree(startNode: SpinalNode<any>, context: SpinalContext<any>): void;
     bindChildNotInContext(node: SpinalNode<any>): Promise<void>;
+    rebindAllNodes(): Promise<void>;
+    private _rebindNode;
+    private _unbindAllNodes;
+    private _unbindNode;
+    private _unbindBindProcess;
     private _bindAllChild;
     private _bindChildInContext;
     private _getRelationNameNotInContext;

@@ -102,13 +102,14 @@ export class SocketHandler {
         return checkAndFormatIds(ids, options);
     }
 
-    private _bindNodes(socket: Socket, result: IGetNodeRes[], nodes: { [key: string]: INodeData }): INodeId[] {
-        return result.reduce((arr, { error, nodeId, status, eventNames, options }) => {
+    private _bindNodes(socket: Socket, result: IGetNodeRes[], nodes: { [key: string]: INodeData }): Promise<INodeId[]> {
+        return result.reduce(async (prom, { error, nodeId, status, eventNames, options }) => {
+            const arr = await prom
             if (!error && status === OK_STATUS) {
                 const { node, contextNode } = nodes[nodeId];
                 eventNames.forEach(roomId => socket.join(roomId));
 
-                spinalGraphUtils.bindNode(node, contextNode, options);
+                await spinalGraphUtils.bindNode(node, contextNode, options);
                 arr.push({
                     nodeId: node.getId().get(),
                     contextId: contextNode.getId().get(),
@@ -117,7 +118,7 @@ export class SocketHandler {
             }
 
             return arr;
-        }, []);
+        }, Promise.resolve([]));
     }
 
     private _leaveRoom(socket: Socket, result: IGetNodeRes[], nodes: { [key: string]: INodeData }): INodeId[] {

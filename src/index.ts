@@ -46,3 +46,6 @@ export async function runSocketServer(server?: Server, hubConnection?: spinal.Fi
     console.log("socket server is running");
     return io;
 }
+
+
+export { spinalGraphUtils };
