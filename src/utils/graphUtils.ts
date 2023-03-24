@@ -25,13 +25,11 @@ import { spinalEventEmitter } from "spinal-env-viewer-plugin-event-emitter";
 import { ADD_CHILD_EVENT, ADD_CHILD_IN_CONTEXT_EVENT, REMOVE_CHILD_EVENT, REMOVE_CHILDREN_EVENT } from 'spinal-model-graph';
 import { SpinalGraphService, SpinalNode, SpinalContext, SpinalGraph } from 'spinal-env-viewer-graph-service';
 import { SpinalTimeSeries } from "spinal-model-timeseries";
-import { OK_STATUS, EVENT_NAMES, IAction, IScope, ISubscribeOptions } from '../lib';
-import { Model, FileSystem, spinalCore, BindProcess } from "spinal-core-connectorjs";
-import { Server } from "socket.io";
-import { config } from "../config";
+import { IScope, ISubscribeOptions } from '../interfaces';
+import { EVENT_NAMES } from "../constants";
+import { FileSystem, BindProcess } from "spinal-core-connectorjs";
 import * as lodash from "lodash";
-
-
+import SocketHandler from "../socket/socketHandlers";
 
 
 const relationToExclude = [SpinalTimeSeries.relationName]
@@ -42,7 +40,7 @@ class SpinalGraphUtils {
     private nodeBinded: Map<string, { [event: string]: { server_id: number, context_id: number, bindProcesses: BindProcess[], eventName: string; options: ISubscribeOptions } }> = new Map();
 
     private static instance: SpinalGraphUtils;
-    private io: Server;
+    private socketHandler: SocketHandler;
 
     private constructor() {
         this._listenAddChildEvent();
@@ -56,105 +54,106 @@ class SpinalGraphUtils {
         return this.instance;
     }
 
-    public async init(conn: spinal.FileSystem, graph?: SpinalGraph): Promise<SpinalGraph> {
-        this.spinalConnection = conn;
-        const old_graph = graph || SpinalGraphService.getGraph();
-        if (old_graph) return old_graph;
-        return new Promise((resolve, reject) => {
-            spinalCore.load(conn, config.file.path, async (graph: SpinalGraph) => {
-                await SpinalGraphService.setGraph(graph);
-                resolve(graph);
-            });
-        });
+    public async init(socketHandler: SocketHandler) {
+        this.socketHandler = socketHandler;
+
+        // this.spinalConnection = conn;
+        // const old_graph = graph || SpinalGraphService.getGraph();
+        // if (old_graph) return old_graph;
+        // return new Promise((resolve, reject) => {
+        //     spinalCore.load(conn, config.file.path, async (graph: SpinalGraph) => {
+        //         await SpinalGraphService.setGraph(graph);
+        //         resolve(graph);
+        //     });
+        // });
     }
 
-    public setIo(io: Server) {
-        this.io = io;
-    }
-
-    public async getNode(nodeId: string | number, contextId?: string | number): Promise<SpinalNode<any>> {
-        //@ts-ignore
-        if (!isNaN(nodeId)) {
-            const node = await this.getNodeWithServerId(<number>nodeId);
+    /*
+        public async getNode(nodeId: string | number, contextId?: string | number): Promise<SpinalNode<any>> {
             //@ts-ignore
-            if (node && node instanceof SpinalNode) SpinalGraphService._addNode(node);
-
-            return node;
-        }
-
-        return this.getNodeWithStaticId(nodeId.toString(), contextId);
-    }
-
-    public getNodeWithServerId(server_id: number): Promise<any> {
-        return new Promise((resolve) => {
-            if (typeof FileSystem._objects[server_id] !== "undefined") {
-                return resolve(FileSystem._objects[server_id]);
+            if (!isNaN(nodeId)) {
+                const node = await this.getNodeWithServerId(<number>nodeId);
+                //@ts-ignore
+                if (node && node instanceof SpinalNode) SpinalGraphService._addNode(node);
+    
+                return node;
             }
-            this.spinalConnection.load_ptr(server_id, (node) => {
-                resolve(node);
-            })
-        });
-    }
-
-    async getContext(contextId: number | string): Promise<SpinalContext> {
-        if (typeof contextId === "undefined") return;
-
-        let node = SpinalGraphService.getRealNode(contextId.toString());
-        if (node) return node;
-        node = FileSystem._objects[contextId];
-        if (node) return node;
-        const graph = SpinalGraphService.getGraph();
-        if (graph) {
-            const contexts = await graph.getChildren();
-            return contexts.find(el => {
-                if (el.getId().get() === contextId || el._server_id == contextId) {
-                    //@ts-ignore
-                    SpinalGraphService._addNode(el);
-                    return true;
+    
+            return this.getNodeWithStaticId(nodeId.toString(), contextId);
+        }
+    
+        public getNodeWithServerId(server_id: number): Promise<SpinalNode> {
+            return new Promise((resolve) => {
+                if (typeof FileSystem._objects[server_id] !== "undefined") {
+                    return resolve(FileSystem._objects[server_id] as SpinalNode);
                 }
-                return false;
-            })
+                this.spinalConnection.load_ptr(server_id, (node) => {
+                    resolve(node as SpinalNode);
+                })
+            });
         }
-    }
-
-    public async getNodeWithStaticId(nodeId: string, contextId: string | number): Promise<SpinalNode<any>> {
-        if (nodeId === contextId) {
-            return this.getContext(nodeId);
+    
+        public async getNodeWithStaticId(nodeId: string, contextId: string | number): Promise<SpinalNode<any>> {
+            if (nodeId === contextId) {
+                return this.getContext(nodeId);
+            }
+    
+            const context = await this.getContext(contextId);
+    
+            if (context instanceof SpinalContext) {
+    
+                const found = await context.findInContext(context, (node, stop) => {
+                    if (node.getId().get() === nodeId) {
+                        // @ts-ignore
+                        SpinalGraphService._addNode(node);
+                        stop()
+                        return true;
+                    }
+    
+                    return false;
+                })
+    
+                return Array.isArray(found) ? found[0] : found;
+                // const queue = [context];
+    
+                // while (queue.length > 0) {
+                //     const tail = queue.shift();
+                //     for await (const node of tail.visitChildrenInContext(context)) {
+                //         if (node.getId().get() === nodeId) {
+                //             // @ts-ignore
+                //             SpinalGraphService._addNode(node);
+                //             return node;
+                //         }
+    
+                //         queue.push(node);
+                //     }
+                // }
+    
+            }
         }
-
-        const context = await this.getContext(contextId);
-
-        if (context instanceof SpinalContext) {
-
-            const found = await context.findInContext(context, (node, stop) => {
-                if (node.getId().get() === nodeId) {
-                    // @ts-ignore
-                    SpinalGraphService._addNode(node);
-                    stop()
-                    return true;
-                }
-
-                return false;
-            })
-
-            return Array.isArray(found) ? found[0] : found;
-            // const queue = [context];
-
-            // while (queue.length > 0) {
-            //     const tail = queue.shift();
-            //     for await (const node of tail.visitChildrenInContext(context)) {
-            //         if (node.getId().get() === nodeId) {
-            //             // @ts-ignore
-            //             SpinalGraphService._addNode(node);
-            //             return node;
-            //         }
-
-            //         queue.push(node);
-            //     }
-            // }
-
+    
+        async getContext(contextId: number | string): Promise<SpinalContext> {
+            if (typeof contextId === "undefined") return;
+    
+            let node = SpinalGraphService.getRealNode(contextId.toString());
+            if (node) return node;
+            node = FileSystem._objects[contextId];
+            if (node) return node;
+            const graph = SpinalGraphService.getGraph();
+            if (graph) {
+                const contexts = await graph.getChildren();
+                return contexts.find(el => {
+                    if (el.getId().get() === contextId || el._server_id == contextId) {
+                        //@ts-ignore
+                        SpinalGraphService._addNode(el);
+                        return true;
+                    }
+                    return false;
+                })
+            }
         }
-    }
+    */
+
 
     public async bindNode(node: SpinalNode<any>, context: SpinalContext<any>, options: ISubscribeOptions, eventName?: string): Promise<void> {
 
@@ -163,8 +162,6 @@ class SpinalGraphUtils {
             const _eventName = eventName || node.getId().get();
 
             await this._bindInfoAndElement(node, context, _eventName, options);
-
-            // model.bind(lodash.debounce(() => callback(null, _eventName, this._formatNode(model.get())), 1000), false);
 
             if (options.subscribeChildren) {
                 switch (options.subscribeChildScope) {
@@ -319,9 +316,9 @@ class SpinalGraphUtils {
         let element = await node.getElement(true);
 
 
-        let infoProcess = info.bind(lodash.debounce(() => {
+        let infoProcess = info.bind(lodash.debounce(async () => {
             console.log(`(${info.id.get()} info changed) spinalCore bind execution`);
-            this._sendSocketEvent(node, {
+            await this.socketHandler.sendSocketEvent(node, {
                 info: info.get(),
                 element: element?.get()
             }, eventName)
@@ -330,9 +327,9 @@ class SpinalGraphUtils {
         processes.push(infoProcess);
 
         if (element) {
-            const elementProcess = element.bind(lodash.debounce(() => {
+            const elementProcess = element.bind(lodash.debounce(async () => {
                 console.log(`(${info.id.get()} element changed) spinalCore bind execution`);
-                this._sendSocketEvent(node, {
+                await this.socketHandler.sendSocketEvent(node, {
                     info: info.get(),
                     element: element?.get()
                 }, eventName)
@@ -342,7 +339,6 @@ class SpinalGraphUtils {
         }
 
         this._addNodeToBindedNode(node, context, eventName, options, processes);
-
     }
 
     private _addNodeToBindedNode(node: SpinalNode, context: SpinalContext, eventName: string, options: ISubscribeOptions, processes: BindProcess[]) {
@@ -366,34 +362,13 @@ class SpinalGraphUtils {
 
     }
 
-    private async _formatNode(node: SpinalNode<any>, model?: { info: { [key: string]: any }, element: { [key: string]: any } }): Promise<any> {
-        if (model) {
-            return {
-                info: model.info,
-                element: model.element
-            }
-        }
-        const info = node.info;
-        const element = await node.getElement(true);
-        return { info: info.get(), element: element && element.get() }
-    }
-
-    private async _sendSocketEvent(node: SpinalNode<any>, model: { info: { [key: string]: any }, element: { [key: string]: any } }, eventName: string, action?: IAction) {
-        const status = OK_STATUS;
-        const dataFormatted = await this._formatNode(node, model);
-        const data = { event: action || { name: EVENT_NAMES.updated, nodeId: node.getId().get() }, node: dataFormatted };
-
-        console.log(`(${dataFormatted.info.id} changed) send new data with socket`, data);
-
-        this.io.to(eventName).emit(eventName, { data, status });
-    }
 
     private _listenAddChildEvent() {
         spinalEventEmitter.on(ADD_CHILD_EVENT, async ({ nodeId, childId }) => {
             const node = await this._callbackListen(nodeId, childId, undefined, nodeId, [IScope.all, IScope.not_in_context]);
             if (node instanceof SpinalNode) {
                 let action = { name: EVENT_NAMES.addChild, parentId: nodeId, nodeId: childId }
-                this._sendSocketEvent(node, undefined, nodeId, action);
+                await this.socketHandler.sendSocketEvent(node, undefined, nodeId, action);
             }
         })
     }
@@ -404,31 +379,31 @@ class SpinalGraphUtils {
             if (node instanceof SpinalNode) {
                 const eventName = `${contextId}:${nodeId}`;
                 let action = { name: EVENT_NAMES.addChildInContext, parentId: nodeId, nodeId: childId, contextId }
-                this._sendSocketEvent(node, undefined, eventName, action);
+                await this.socketHandler.sendSocketEvent(node, undefined, eventName, action);
             }
         })
     }
 
     private _listenRemoveChildEvent() {
-        spinalEventEmitter.on(REMOVE_CHILD_EVENT, ({ nodeId, childId }) => {
+        spinalEventEmitter.on(REMOVE_CHILD_EVENT, async ({ nodeId, childId }) => {
             const data = this.nodeBinded.get(nodeId);
             if (data) {
                 const node = SpinalGraphService.getRealNode(nodeId);
                 const event = nodeId
                 const action = { name: EVENT_NAMES.childRemoved, parentId: nodeId, nodeId: childId };
-                this._sendSocketEvent(node, undefined, event, action)
+                await this.socketHandler.sendSocketEvent(node, undefined, event, action)
             }
         })
     }
 
     private _listenAddChildrenEvent() {
-        spinalEventEmitter.on(REMOVE_CHILDREN_EVENT, ({ nodeId, childrenIds }) => {
+        spinalEventEmitter.on(REMOVE_CHILDREN_EVENT, async ({ nodeId, childrenIds }) => {
             const data = this.nodeBinded.get(nodeId);
             if (data) {
                 const node = SpinalGraphService.getRealNode(nodeId);
                 const event = nodeId
                 const action = { name: EVENT_NAMES.childrenRemoved, parentId: nodeId, nodeIds: childrenIds };
-                this._sendSocketEvent(node, undefined, event, action);
+                await this.socketHandler.sendSocketEvent(node, undefined, event, action);
             }
         })
     }

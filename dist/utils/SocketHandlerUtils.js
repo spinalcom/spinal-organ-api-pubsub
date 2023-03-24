@@ -32,15 +32,15 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getRoomNameFunc = exports.checkAndFormatIds = void 0;
-const lib_1 = require("../lib");
+exports._formatNode = exports.getRoomNameFunc = exports.checkAndFormatIds = void 0;
+const interfaces_1 = require("../interfaces");
+const constants_1 = require("../constants");
 const spinal_model_graph_1 = require("spinal-model-graph");
-const graphUtils_1 = require("./graphUtils");
 const lodash = require("lodash");
-function checkAndFormatIds(nodeIds, options) {
+function checkAndFormatIds(socket, spinalIOMiddleware, nodeIds, options) {
     return __awaiter(this, void 0, void 0, function* () {
         const idsFormatted = _structureDataFunc(nodeIds, options);
-        const nodes = yield _getNodes(idsFormatted);
+        const nodes = yield _getNodes(socket, spinalIOMiddleware, idsFormatted);
         return _removeDuplicate(nodes);
     });
 }
@@ -53,16 +53,16 @@ function getRoomNameFunc(nodeId, contextId, obj, options) {
     if (!node || !(node instanceof spinal_model_graph_1.SpinalNode)) {
         error = !node ? `${nodeId} is not found` : `${nodeId} must be a spinalNode, SpinalContext`;
         // error = new Error(message);
-        return { error, nodeId, status: lib_1.NOK_STATUS };
+        return { error, nodeId, status: constants_1.NOK_STATUS };
     }
     if (!context || !(context instanceof spinal_model_graph_1.SpinalContext)) {
         error = !context ? `the context ${contextId} is not found` : `${contextId} must be a SpinalContext`;
         // error = new Error(message);
-        return { error, nodeId, status: lib_1.NOK_STATUS };
+        return { error, nodeId, status: constants_1.NOK_STATUS };
     }
     let roomId = node.getId().get();
     let eventNames = [roomId];
-    if (options.subscribeChildren && [lib_1.IScope.in_context, lib_1.IScope.tree_in_context].indexOf(options.subscribeChildScope) !== -1) {
+    if (options.subscribeChildren && [interfaces_1.IScope.in_context, interfaces_1.IScope.tree_in_context].indexOf(options.subscribeChildScope) !== -1) {
         if (!context || !(context instanceof spinal_model_graph_1.SpinalContext)) {
             let contextError;
             if (!contextId)
@@ -70,14 +70,28 @@ function getRoomNameFunc(nodeId, contextId, obj, options) {
             else
                 contextError = `${contextId} is not a valid context id`;
             error = `You try to subscribe somme data in context but, ${contextError}`;
-            return { error, nodeId, status: lib_1.NOK_STATUS };
+            return { error, nodeId, status: constants_1.NOK_STATUS };
         }
         const namespaceId = context.getId().get();
         eventNames.push(`${namespaceId}:${roomId}`);
     }
-    return { error, nodeId, status: lib_1.OK_STATUS, eventNames, options };
+    return { error, nodeId, status: constants_1.OK_STATUS, eventNames, options };
 }
 exports.getRoomNameFunc = getRoomNameFunc;
+function _formatNode(node, model) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (model) {
+            return {
+                info: model.info,
+                element: model.element
+            };
+        }
+        const info = node.info;
+        const element = yield node.getElement(true);
+        return { info: info.get(), element: element && element.get() };
+    });
+}
+exports._formatNode = _formatNode;
 /////////////////////////////////////////////////////////
 //                  PRIVATES                           //
 /////////////////////////////////////////////////////////
@@ -87,14 +101,14 @@ function _structureDataFunc(ids, options) {
     // options = typeof options === "object" ? options : {};
     return ids.map(id => (Object.assign(Object.assign({}, _formatId(id)), { options: _getOptions(id) || options })));
 }
-function _getNodes(ids) {
+function _getNodes(socket, spinalMiddleware, ids) {
     // const obj = {};
     const promises = ids.map(({ nodeId, contextId, options }) => __awaiter(this, void 0, void 0, function* () {
         let context;
         if (contextId)
-            context = yield graphUtils_1.spinalGraphUtils.getNode(contextId, contextId);
+            context = yield spinalMiddleware.getNode(contextId, contextId, socket);
         let tempContextId = context && context instanceof spinal_model_graph_1.SpinalContext ? contextId : undefined;
-        const node = yield graphUtils_1.spinalGraphUtils.getNode(nodeId, tempContextId);
+        const node = yield spinalMiddleware.getNode(nodeId, tempContextId, socket);
         return {
             nodeId,
             contextId,
@@ -102,18 +116,8 @@ function _getNodes(ids) {
             contextNode: context,
             options
         };
-        // obj[nodeId] = {
-        //     nodeId,
-        //     contextId,
-        //     node,
-        //     contextNode: context,
-        //     options
-        // }
     }));
     return Promise.all(promises);
-    // return Promise.all(promises).then((result) => {
-    //     return obj;
-    // })
 }
 function _formatId(id) {
     let node = { nodeId: undefined, contextId: undefined };

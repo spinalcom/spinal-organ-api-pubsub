@@ -22,15 +22,16 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 
-import { ISubscribeOptions, INodeId, OK_STATUS, NOK_STATUS, IGetNodeRes, IScope, INodeData } from "../lib";
+import { ISubscribeOptions, INodeId, IGetNodeRes, IScope, INodeData, ISpinalIOMiddleware } from "../interfaces";
+import { OK_STATUS, NOK_STATUS } from "../constants";
 import { SpinalContext, SpinalNode } from "spinal-model-graph";
-import { spinalGraphUtils } from "./graphUtils";
 import * as lodash from "lodash";
+import { Socket } from "socket.io";
 
 
-export async function checkAndFormatIds(nodeIds: (string | number | INodeId)[], options: ISubscribeOptions): Promise<{ ids: INodeData[], obj: { [key: string]: INodeData } }> {
+export async function checkAndFormatIds(socket: Socket, spinalIOMiddleware: ISpinalIOMiddleware, nodeIds: (string | number | INodeId)[], options: ISubscribeOptions): Promise<{ ids: INodeData[], obj: { [key: string]: INodeData } }> {
     const idsFormatted = _structureDataFunc(nodeIds, options);
-    const nodes = await _getNodes(idsFormatted);
+    const nodes = await _getNodes(socket, spinalIOMiddleware, idsFormatted);
     return _removeDuplicate(nodes);
 }
 
@@ -73,6 +74,17 @@ export function getRoomNameFunc(nodeId: string | number, contextId: string | num
     return { error, nodeId, status: OK_STATUS, eventNames, options };
 }
 
+export async function _formatNode(node: SpinalNode<any>, model?: { info: { [key: string]: any }, element: { [key: string]: any } }): Promise<any> {
+    if (model) {
+        return {
+            info: model.info,
+            element: model.element
+        }
+    }
+    const info = node.info;
+    const element = await node.getElement(true);
+    return { info: info.get(), element: element && element.get() }
+}
 
 /////////////////////////////////////////////////////////
 //                  PRIVATES                           //
@@ -91,14 +103,14 @@ function _structureDataFunc(ids: (string | number | INodeId)[], options: ISubscr
 
 }
 
-function _getNodes(ids: INodeId[]): Promise<INodeData[]> {
+function _getNodes(socket: Socket, spinalMiddleware: ISpinalIOMiddleware, ids: INodeId[]): Promise<INodeData[]> {
     // const obj = {};
 
     const promises = ids.map(async ({ nodeId, contextId, options }) => {
         let context;
-        if (contextId) context = await spinalGraphUtils.getNode(contextId, contextId);
+        if (contextId) context = await spinalMiddleware.getNode(contextId, contextId, socket);
         let tempContextId = context && context instanceof SpinalContext ? contextId : undefined;
-        const node = await spinalGraphUtils.getNode(nodeId, tempContextId);
+        const node = await spinalMiddleware.getNode(nodeId, tempContextId, socket);
         return {
             nodeId,
             contextId,
@@ -106,19 +118,10 @@ function _getNodes(ids: INodeId[]): Promise<INodeData[]> {
             contextNode: context,
             options
         }
-        // obj[nodeId] = {
-        //     nodeId,
-        //     contextId,
-        //     node,
-        //     contextNode: context,
-        //     options
-        // }
+
     });
 
     return Promise.all(promises);
-    // return Promise.all(promises).then((result) => {
-    //     return obj;
-    // })
 }
 
 

@@ -1,19 +1,14 @@
-import { SpinalNode, SpinalContext, SpinalGraph } from 'spinal-env-viewer-graph-service';
-import { ISubscribeOptions } from '../lib';
-import { Server } from "socket.io";
+import { SpinalNode, SpinalContext } from 'spinal-env-viewer-graph-service';
+import { ISubscribeOptions } from '../interfaces';
+import SocketHandler from "../socket/socketHandlers";
 declare class SpinalGraphUtils {
     spinalConnection: spinal.FileSystem;
     private nodeBinded;
     private static instance;
-    private io;
+    private socketHandler;
     private constructor();
     static getInstance(): SpinalGraphUtils;
-    init(conn: spinal.FileSystem, graph?: SpinalGraph): Promise<SpinalGraph>;
-    setIo(io: Server): void;
-    getNode(nodeId: string | number, contextId?: string | number): Promise<SpinalNode<any>>;
-    getNodeWithServerId(server_id: number): Promise<any>;
-    getContext(contextId: number | string): Promise<SpinalContext>;
-    getNodeWithStaticId(nodeId: string, contextId: string | number): Promise<SpinalNode<any>>;
+    init(socketHandler: SocketHandler): Promise<void>;
     bindNode(node: SpinalNode<any>, context: SpinalContext<any>, options: ISubscribeOptions, eventName?: string): Promise<void>;
     bindContextTree(startNode: SpinalNode<any>, context: SpinalContext<any>): void;
     bindChildNotInContext(node: SpinalNode<any>): Promise<void>;
@@ -28,8 +23,6 @@ declare class SpinalGraphUtils {
     private _getRelationNames;
     private _bindInfoAndElement;
     private _addNodeToBindedNode;
-    private _formatNode;
-    private _sendSocketEvent;
     private _listenAddChildEvent;
     private _listenAddChildInContextEvent;
     private _listenRemoveChildEvent;

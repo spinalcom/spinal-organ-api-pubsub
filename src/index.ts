@@ -25,27 +25,30 @@
 import { Server } from 'socket.io';
 import { config } from "./config"
 import { spinalGraphUtils } from './utils';
-import { SocketHandler } from "./classes/socketHandlers"
-import { spinalCore } from 'spinal-core-connectorjs';
-import { storeMiddleWare } from './classes/socketMiddlewares';
-import sessionStorage from './classes/SessionStore';
-import { SpinalGraph } from 'spinal-env-viewer-graph-service';
+import { SocketHandler } from "./socket/socketHandlers"
+import { ISpinalIOMiddleware } from './interfaces';
+import { Middleware } from './Middleware';
+import { SessionStore } from './store';
 
-export async function runSocketServer(server?: Server, hubConnection?: spinal.FileSystem, graph?: SpinalGraph): Promise<Server> {
+export async function runSocketServer(server?: Server, spinalIOMiddleware?: ISpinalIOMiddleware): Promise<Server> {
     let app: any = server || config.server?.port || 8888;
     const io = new Server(app, { pingTimeout: 30000, pingInterval: 25000 });
-    const connect = hubConnection || spinalCore.connect(`${config.spinalConnector.protocol}://${config.spinalConnector.user}:${config.spinalConnector.password}@${config.spinalConnector.host}:${config.spinalConnector.port}`)
-
-    spinalGraphUtils.setIo(io);
-    await spinalGraphUtils.init(connect, graph);
-    await sessionStorage.init(connect);
-
-    storeMiddleWare(io);
-    new SocketHandler(io);
+    spinalIOMiddleware = spinalIOMiddleware || new Middleware();
+    const socketHandler = new SocketHandler(io, spinalIOMiddleware);
+    await spinalGraphUtils.init(socketHandler);
+    await SessionStore.getInstance().init(spinalIOMiddleware.conn);
 
     console.log("socket server is running");
     return io;
 }
 
 
-export { spinalGraphUtils };
+
+///////////////////////////////////////////////////
+//              Exports
+///////////////////////////////////////////////////
+export * from "./interfaces";
+export {
+    Middleware,
+    spinalGraphUtils
+}
