@@ -49,7 +49,10 @@ function getRoomNameFunc(nodeId, contextId, obj, options) {
     var _a, _b;
     const node = (_a = obj[nodeId]) === null || _a === void 0 ? void 0 : _a.node;
     const context = (_b = obj[nodeId]) === null || _b === void 0 ? void 0 : _b.contextNode;
-    let error = null;
+    let error = obj[nodeId].error;
+    if (error) {
+        return { error, nodeId, status: constants_1.NOK_STATUS };
+    }
     if (!node || !(node instanceof spinal_model_graph_1.SpinalNode)) {
         error = !node ? `${nodeId} is not found` : `${nodeId} must be a spinalNode, SpinalContext`;
         // error = new Error(message);
@@ -104,18 +107,22 @@ function _structureDataFunc(ids, options) {
 function _getNodes(socket, spinalMiddleware, ids) {
     // const obj = {};
     const promises = ids.map(({ nodeId, contextId, options }) => __awaiter(this, void 0, void 0, function* () {
-        let context;
-        if (contextId)
-            context = yield spinalMiddleware.getNode(contextId, contextId, socket);
-        let tempContextId = context && context instanceof spinal_model_graph_1.SpinalContext ? contextId : undefined;
-        const node = yield spinalMiddleware.getNode(nodeId, tempContextId, socket);
-        return {
+        const res = {
             nodeId,
             contextId,
-            node,
-            contextNode: context,
-            options
+            node: undefined,
+            contextNode: undefined,
+            options,
+            error: undefined
         };
+        try {
+            res.contextNode = yield spinalMiddleware.getContext(contextId, socket);
+            res.node = yield spinalMiddleware.getNode(nodeId, contextId, socket);
+        }
+        catch (error) {
+            res.error = error.message;
+        }
+        return res;
     }));
     return Promise.all(promises);
 }

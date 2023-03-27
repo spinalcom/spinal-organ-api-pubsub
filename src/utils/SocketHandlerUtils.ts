@@ -38,8 +38,11 @@ export async function checkAndFormatIds(socket: Socket, spinalIOMiddleware: ISpi
 export function getRoomNameFunc(nodeId: string | number, contextId: string | number, obj: { [key: string]: INodeData }, options: ISubscribeOptions): IGetNodeRes {
     const node = obj[nodeId]?.node;
     const context = obj[nodeId]?.contextNode;
+    let error = obj[nodeId].error;
 
-    let error = null;
+    if (error) {
+        return { error, nodeId, status: NOK_STATUS }
+    }
 
     if (!node || !(node instanceof SpinalNode)) {
         error = !node ? `${nodeId} is not found` : `${nodeId} must be a spinalNode, SpinalContext`;
@@ -107,18 +110,23 @@ function _getNodes(socket: Socket, spinalMiddleware: ISpinalIOMiddleware, ids: I
     // const obj = {};
 
     const promises = ids.map(async ({ nodeId, contextId, options }) => {
-        let context;
-        if (contextId) context = await spinalMiddleware.getNode(contextId, contextId, socket);
-        let tempContextId = context && context instanceof SpinalContext ? contextId : undefined;
-        const node = await spinalMiddleware.getNode(nodeId, tempContextId, socket);
-        return {
+        const res = {
             nodeId,
             contextId,
-            node,
-            contextNode: context,
-            options
+            node: undefined,
+            contextNode: undefined,
+            options,
+            error: undefined
+        }
+        try {
+            res.contextNode = await spinalMiddleware.getContext(contextId, socket);
+            res.node = await spinalMiddleware.getNode(nodeId, contextId, socket);
+
+        } catch (error) {
+            res.error = error.message;
         }
 
+        return res;
     });
 
     return Promise.all(promises);

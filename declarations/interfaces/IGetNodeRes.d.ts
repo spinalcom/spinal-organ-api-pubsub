@@ -5,6 +5,6 @@ export interface IGetNodeRes {
     status: string;
     eventNames?: string[];
     nodeId: string | number;
-    error: Error;
+    error: string;
     options?: ISubscribeOptions;
 }

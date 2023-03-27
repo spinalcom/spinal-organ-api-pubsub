@@ -11,4 +11,5 @@ export interface INodeData {
     options?: ISubscribeOptions;
     node?: SpinalNode<any>;
     contextNode?: SpinalContext<any>;
+    error?: string;
 }
