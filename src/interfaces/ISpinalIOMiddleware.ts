@@ -31,7 +31,7 @@ export interface ISpinalIOMiddleware {
     conn: spinal.FileSystem;
     loadedPtr: Map<number, any>;
     getGraph: () => Promise<SpinalGraph>;
-    getProfileGraph: (profileId?: string) => Promise<SpinalGraph>;
+    getProfileGraph: (socket?: Socket) => Promise<SpinalGraph>;
     tokenCheckMiddleware?: (io: Server) => void;
     getNode: (nodeId: string | number, contextId?: string | number, socket?: Socket) => Promise<SpinalNode>;
     getNodeWithServerId: (server_id: number, socket?: Socket) => Promise<SpinalNode>;
