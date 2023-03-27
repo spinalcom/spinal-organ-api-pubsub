@@ -29,7 +29,6 @@ import { IConfig } from "../interfaces";
 export interface ISpinalIOMiddleware {
     config: IConfig;
     conn: spinal.FileSystem;
-    loadedPtr: Map<number, any>;
     getGraph: () => Promise<SpinalGraph>;
     getProfileGraph: (socket?: Socket) => Promise<SpinalGraph>;
     tokenCheckMiddleware?: (io: Server) => void;
