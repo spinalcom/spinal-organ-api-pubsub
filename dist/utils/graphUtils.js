@@ -158,7 +158,7 @@ class SpinalGraphUtils {
                 // const model = new Model({ info, element });
                 const _eventName = eventName || node.getId().get();
                 if (socket && eventName) {
-                    socket.emit(lib_1.SUBSCRIBED, [{ error: null, eventNames: [_eventName], options, status: lib_1.OK_STATUS }]);
+                    socket.emit(lib_1.SUBSCRIBED, { error: null, eventNames: [_eventName], options, status: lib_1.OK_STATUS });
                     socket.join(_eventName);
                 }
                 yield this._bindInfoAndElement(node, context, _eventName, options);

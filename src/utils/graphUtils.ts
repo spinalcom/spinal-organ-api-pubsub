@@ -163,7 +163,7 @@ class SpinalGraphUtils {
             const _eventName = eventName || node.getId().get();
 
             if (socket && eventName) {
-                socket.emit(SUBSCRIBED, [{ error: null, eventNames: [_eventName], options, status: OK_STATUS }])
+                socket.emit(SUBSCRIBED, { error: null, eventNames: [_eventName], options, status: OK_STATUS })
                 socket.join(_eventName);
             }
 
