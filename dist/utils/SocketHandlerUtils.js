@@ -89,31 +89,23 @@ function _structureDataFunc(ids, options) {
 }
 function _getNodes(ids) {
     // const obj = {};
-    const promises = ids.map(({ nodeId, contextId, options }) => __awaiter(this, void 0, void 0, function* () {
+    return ids.reduce((prom, { nodeId, contextId, options }) => __awaiter(this, void 0, void 0, function* () {
+        const liste = yield prom;
         let context;
         if (contextId)
             context = yield graphUtils_1.spinalGraphUtils.getNode(contextId, contextId);
         let tempContextId = context && context instanceof spinal_model_graph_1.SpinalContext ? contextId : undefined;
         const node = yield graphUtils_1.spinalGraphUtils.getNode(nodeId, tempContextId);
-        return {
+        liste.push({
             nodeId,
             contextId,
             node,
             contextNode: context,
             options
-        };
-        // obj[nodeId] = {
-        //     nodeId,
-        //     contextId,
-        //     node,
-        //     contextNode: context,
-        //     options
-        // }
-    }));
-    return Promise.all(promises);
-    // return Promise.all(promises).then((result) => {
-    //     return obj;
-    // })
+        });
+        return liste;
+    }), Promise.resolve([]));
+    // return Promise.all(promises);
 }
 function _formatId(id) {
     let node = { nodeId: undefined, contextId: undefined };
@@ -142,7 +134,7 @@ function _removeDuplicate(nodes) {
     const data = nodes.reduce((arr, item) => {
         const found = arr.find(({ node, contextNode, options }) => {
             var _a, _b;
-            return node._server_id === ((_a = item.node) === null || _a === void 0 ? void 0 : _a._server_id) &&
+            return (node === null || node === void 0 ? void 0 : node._server_id) === ((_a = item.node) === null || _a === void 0 ? void 0 : _a._server_id) &&
                 contextNode._server_id === ((_b = item.contextNode) === null || _b === void 0 ? void 0 : _b._server_id) &&
                 options.subscribeChildScope === item.options.subscribeChildScope &&
                 options.subscribeChildren === item.options.subscribeChildren;

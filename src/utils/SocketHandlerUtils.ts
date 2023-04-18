@@ -94,31 +94,23 @@ function _structureDataFunc(ids: (string | number | INodeId)[], options: ISubscr
 function _getNodes(ids: INodeId[]): Promise<INodeData[]> {
     // const obj = {};
 
-    const promises = ids.map(async ({ nodeId, contextId, options }) => {
+    return ids.reduce(async (prom, { nodeId, contextId, options }) => {
+        const liste = await prom;
         let context;
         if (contextId) context = await spinalGraphUtils.getNode(contextId, contextId);
         let tempContextId = context && context instanceof SpinalContext ? contextId : undefined;
         const node = await spinalGraphUtils.getNode(nodeId, tempContextId);
-        return {
+        liste.push({
             nodeId,
             contextId,
             node,
             contextNode: context,
             options
-        }
-        // obj[nodeId] = {
-        //     nodeId,
-        //     contextId,
-        //     node,
-        //     contextNode: context,
-        //     options
-        // }
-    });
+        });
+        return liste;
+    }, Promise.resolve([]));
 
-    return Promise.all(promises);
-    // return Promise.all(promises).then((result) => {
-    //     return obj;
-    // })
+    // return Promise.all(promises);
 }
 
 
@@ -150,7 +142,7 @@ function _removeDuplicate(nodes: INodeData[]): { ids: INodeData[], obj: { [key: 
 
     const data = nodes.reduce((arr, item) => {
         const found = arr.find(({ node, contextNode, options }) => {
-            return node._server_id === item.node?._server_id &&
+            return node?._server_id === item.node?._server_id &&
                 contextNode._server_id === item.contextNode?._server_id &&
                 options.subscribeChildScope === item.options.subscribeChildScope &&
                 options.subscribeChildren === item.options.subscribeChildren

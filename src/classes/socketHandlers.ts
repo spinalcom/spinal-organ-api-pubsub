@@ -41,6 +41,7 @@ export class SocketHandler {
 
             const old_subscribed_data = sessionStore.getSubscribedData(sessionId);
             if (old_subscribed_data && old_subscribed_data.length > 0) await this._subscribe(socket, old_subscribed_data, true);
+
             this.listenSubscribeEvent(socket);
             this.listenUnsubscribeEvent(socket);
             this.listenDisconnectEvent(socket);
@@ -109,7 +110,7 @@ export class SocketHandler {
                 const { node, contextNode } = nodes[nodeId];
                 eventNames.forEach(roomId => socket.join(roomId));
 
-                await spinalGraphUtils.bindNode(node, contextNode, options);
+                await spinalGraphUtils.bindNode(node, contextNode, options, undefined, socket);
                 arr.push({
                     nodeId: node.getId().get(),
                     contextId: contextNode.getId().get(),

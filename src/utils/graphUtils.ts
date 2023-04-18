@@ -25,9 +25,9 @@ import { spinalEventEmitter } from "spinal-env-viewer-plugin-event-emitter";
 import { ADD_CHILD_EVENT, ADD_CHILD_IN_CONTEXT_EVENT, REMOVE_CHILD_EVENT, REMOVE_CHILDREN_EVENT } from 'spinal-model-graph';
 import { SpinalGraphService, SpinalNode, SpinalContext, SpinalGraph } from 'spinal-env-viewer-graph-service';
 import { SpinalTimeSeries } from "spinal-model-timeseries";
-import { OK_STATUS, EVENT_NAMES, IAction, IScope, ISubscribeOptions } from '../lib';
+import { OK_STATUS, EVENT_NAMES, IAction, IScope, ISubscribeOptions, SUBSCRIBED } from '../lib';
 import { Model, FileSystem, spinalCore, BindProcess } from "spinal-core-connectorjs";
-import { Server } from "socket.io";
+import { Server, Socket } from "socket.io";
 import { config } from "../config";
 import * as lodash from "lodash";
 
@@ -156,56 +156,62 @@ class SpinalGraphUtils {
         }
     }
 
-    public async bindNode(node: SpinalNode<any>, context: SpinalContext<any>, options: ISubscribeOptions, eventName?: string): Promise<void> {
+    public async bindNode(node: SpinalNode<any>, context: SpinalContext<any>, options: ISubscribeOptions, eventName?: string, socket?: Socket): Promise<void> {
 
         try {
             // const model = new Model({ info, element });
             const _eventName = eventName || node.getId().get();
 
-            await this._bindInfoAndElement(node, context, _eventName, options);
+            if (socket && eventName) {
+                socket.emit(SUBSCRIBED, [{ error: null, eventNames: [_eventName], options, status: OK_STATUS }])
+                socket.join(_eventName);
+            }
 
-            // model.bind(lodash.debounce(() => callback(null, _eventName, this._formatNode(model.get())), 1000), false);
+            await this._bindInfoAndElement(node, context, _eventName, options);
 
             if (options.subscribeChildren) {
                 switch (options.subscribeChildScope) {
                     case IScope.in_context:
-                        this._bindChildInContext(node, context);
+                        await this._bindChildInContext(node, context, socket);
                         break;
                     case IScope.tree_in_context:
-                        this.bindContextTree(node, context);
+                        await this.bindContextTree(node, context, socket);
                         break;
                     case IScope.not_in_context:
-                        this.bindChildNotInContext(node);
+                        await this.bindChildNotInContext(node, socket);
                         break;
                     case IScope.all:
-                        this._bindAllChild(node);
+                        await this._bindAllChild(node, socket);
+                        break;
+                    case IScope.tree_not_in_context:
+                        await this.bindTreeNotInContext(node, socket);
+                        break;
                 }
             }
         } catch (error) {
-            console.error(error);
-
+            // console.error(error);
             const err_message = error.message;
             console.error(err_message);
 
         }
     }
 
-    public bindContextTree(startNode: SpinalNode<any>, context: SpinalContext<any>): void {
+    public bindContextTree(startNode: SpinalNode<any>, context: SpinalContext<any>, socket: Socket): void {
         const eventName = `${context.getId().get()}:${startNode.getId().get()}`;
         startNode.findInContext(context, (node) => {
             this._activeEventSender(node);
-            this.bindNode(node, context, {}, eventName);
+            this.bindNode(node, context, {}, eventName, socket);
             return false;
         })
     }
 
-    public async bindChildNotInContext(node: SpinalNode<any>): Promise<void> {
+    public async bindChildNotInContext(node: SpinalNode<any>, socket: Socket): Promise<void> {
         this._activeEventSender(node);
         const eventName = node.getId().get();
         const relations = this._getRelationNameNotInContext(node);
         const children = await node.getChildren(relations.filter(el => relationToExclude.indexOf(el) !== -1));
 
-        children.forEach((child) => this.bindNode(child, null, {}, eventName));
+        children.forEach((child) => this.bindNode(child, null, {}, eventName, socket));
     }
 
     public async rebindAllNodes() {
@@ -218,10 +224,36 @@ class SpinalGraphUtils {
     }
 
 
+    public async bindTreeNotInContext(node: SpinalNode<any>, socket: Socket) {
+        const nodes = await this._getTreeNotInContext(node);
+
+        for (const n of nodes) {
+            const eventName = n.getId().get();
+            await this.bindNode(n, null, {}, eventName, socket);
+        }
+    }
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////
     //                                      PRIVATE                                                          //
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+    private async _getTreeNotInContext(start: SpinalNode): Promise<SpinalNode[]> {
+        const nodes = [];
+        let queue = [start];
+
+        while (queue.length > 0) {
+            const node = queue.pop();
+            nodes.push(node);
+            const relations = this._getRelationNameNotInContext(node);
+            const children = await node.getChildren(relations.filter(el => relationToExclude.indexOf(el) !== -1));
+
+            queue = queue.concat(children);
+        }
+
+        return nodes;
+    }
 
     private async _rebindNode(nodeId: string) {
         const data = this.nodeBinded.get(nodeId);
@@ -266,20 +298,20 @@ class SpinalGraphUtils {
         return models.forEach(el => el.unbind(process));
     }
 
-    private async _bindAllChild(node: SpinalNode<any>): Promise<void> {
+    private async _bindAllChild(node: SpinalNode<any>, socket: Socket): Promise<void> {
         this._activeEventSender(node);
         const eventName = node.getId().get();
         const relationNames = this._getRelationNames(node);
         const children = await node.getChildren(relationNames.filter(el => relationToExclude.indexOf(el) !== -1));
 
-        children.forEach((child) => this.bindNode(child, null, {}, eventName));
+        children.forEach((child) => this.bindNode(child, null, {}, eventName, socket));
     }
 
-    private async _bindChildInContext(node: SpinalNode<any>, context: SpinalContext<any>): Promise<void> {
+    private async _bindChildInContext(node: SpinalNode<any>, context: SpinalContext<any>, socket: Socket): Promise<void> {
         this._activeEventSender(node);
         const eventName = `${context.getId().get()}:${node.getId().get()}`;
         const children = await node.getChildrenInContext(context);
-        children.forEach((child) => this.bindNode(child, context, {}, eventName));
+        children.forEach((child) => this.bindNode(child, context, {}, eventName, socket));
     }
 
     private _getRelationNameNotInContext(node: SpinalNode<any>): string[] {

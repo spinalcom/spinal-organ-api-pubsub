@@ -30,5 +30,6 @@ var IScope;
     IScope["in_context"] = "in_Context";
     IScope["not_in_context"] = "not_in_context";
     IScope["tree_in_context"] = "tree_in_context";
+    IScope["tree_not_in_context"] = "tree_not_in_context";
 })(IScope = exports.IScope || (exports.IScope = {}));
 //# sourceMappingURL=ISubscribeOptions.js.map

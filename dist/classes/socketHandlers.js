@@ -103,7 +103,7 @@ class SocketHandler {
             if (!error && status === lib_1.OK_STATUS) {
                 const { node, contextNode } = nodes[nodeId];
                 eventNames.forEach(roomId => socket.join(roomId));
-                yield utils_1.spinalGraphUtils.bindNode(node, contextNode, options);
+                yield utils_1.spinalGraphUtils.bindNode(node, contextNode, options, undefined, socket);
                 arr.push({
                     nodeId: node.getId().get(),
                     contextId: contextNode.getId().get(),
