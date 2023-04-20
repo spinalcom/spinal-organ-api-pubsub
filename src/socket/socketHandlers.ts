@@ -104,7 +104,10 @@ export class SocketHandler {
 
         const result = idsFormatted.map((item) => getRoomNameFunc(item.nodeId, item.contextId, nodes, item.options));
 
-        socket.emit(SUBSCRIBED, result.length == 1 ? result[0] : result);
+        for (const obj of result) {
+            socket.emit(SUBSCRIBED, obj);
+        }
+        // socket.emit(SUBSCRIBED, result.length == 1 ? result[0] : result);
 
         const idsToSave = await this._bindNodes(socket, result, nodes);
 
@@ -126,7 +129,7 @@ export class SocketHandler {
                 const { node, contextNode } = nodes[nodeId];
                 eventNames.forEach(roomId => socket.join(roomId));
 
-                await spinalGraphUtils.bindNode(node, contextNode, options);
+                await spinalGraphUtils.bindNode(node, contextNode, options, undefined, socket);
                 arr.push({
                     nodeId: node.getId().get(),
                     contextId: contextNode.getId().get(),

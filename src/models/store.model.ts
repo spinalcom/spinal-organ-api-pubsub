@@ -85,7 +85,7 @@ export class PubSubStore extends Model {
             for (let i = 0; i < data.length; i++) {
                 const element = data[i];
 
-                if (element.contextId.get() === id.contextId && element.contextId.get() === id.nodeId) {
+                if (element.contextId?.get() === id.contextId && element.nodeId?.get() === id.nodeId) {
                     if (!id.options) return i;
                     else if (element.options && this._compareOptions(element.options.get(), id.options)) return i;
                 };

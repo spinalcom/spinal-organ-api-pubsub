@@ -161,8 +161,8 @@ function _removeDuplicate(nodes: INodeData[]): { ids: INodeData[], obj: { [key: 
 
     const data = nodes.reduce((arr, item) => {
         const found = arr.find(({ node, contextNode, options }) => {
-            return node._server_id === item.node?._server_id &&
-                contextNode._server_id === item.contextNode?._server_id &&
+            return node?._server_id === item.node?._server_id &&
+                contextNode?._server_id === item.contextNode?._server_id &&
                 options.subscribeChildScope === item.options.subscribeChildScope &&
                 options.subscribeChildren === item.options.subscribeChildren
         });

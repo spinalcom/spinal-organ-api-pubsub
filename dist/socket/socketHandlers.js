@@ -100,7 +100,10 @@ class SocketHandler {
             const sessionId = this._getSessionId(socket);
             const { obj: nodes, ids: idsFormatted } = yield this._checkAndFormatParams(socket, ids);
             const result = idsFormatted.map((item) => (0, utils_1.getRoomNameFunc)(item.nodeId, item.contextId, nodes, item.options));
-            socket.emit(constants_1.SUBSCRIBED, result.length == 1 ? result[0] : result);
+            for (const obj of result) {
+                socket.emit(constants_1.SUBSCRIBED, obj);
+            }
+            // socket.emit(SUBSCRIBED, result.length == 1 ? result[0] : result);
             const idsToSave = yield this._bindNodes(socket, result, nodes);
             if (save)
                 sessionStore.saveSubscriptionData(sessionId, idsToSave);
@@ -118,7 +121,7 @@ class SocketHandler {
             if (!error && status === constants_1.OK_STATUS) {
                 const { node, contextNode } = nodes[nodeId];
                 eventNames.forEach(roomId => socket.join(roomId));
-                yield utils_1.spinalGraphUtils.bindNode(node, contextNode, options);
+                yield utils_1.spinalGraphUtils.bindNode(node, contextNode, options, undefined, socket);
                 arr.push({
                     nodeId: node.getId().get(),
                     contextId: contextNode.getId().get(),

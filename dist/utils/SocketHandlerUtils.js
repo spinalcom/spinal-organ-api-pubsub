@@ -153,8 +153,8 @@ function _removeDuplicate(nodes) {
     const data = nodes.reduce((arr, item) => {
         const found = arr.find(({ node, contextNode, options }) => {
             var _a, _b;
-            return node._server_id === ((_a = item.node) === null || _a === void 0 ? void 0 : _a._server_id) &&
-                contextNode._server_id === ((_b = item.contextNode) === null || _b === void 0 ? void 0 : _b._server_id) &&
+            return (node === null || node === void 0 ? void 0 : node._server_id) === ((_a = item.node) === null || _a === void 0 ? void 0 : _a._server_id) &&
+                (contextNode === null || contextNode === void 0 ? void 0 : contextNode._server_id) === ((_b = item.contextNode) === null || _b === void 0 ? void 0 : _b._server_id) &&
                 options.subscribeChildScope === item.options.subscribeChildScope &&
                 options.subscribeChildren === item.options.subscribeChildren;
         });
