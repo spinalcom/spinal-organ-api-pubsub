@@ -42,13 +42,14 @@ class PubSubStore extends spinal_core_connectorjs_1.Model {
         }
         if (!Array.isArray(data))
             data = [data];
-        data.map((id) => {
+        const ids = this.getIds(userSecretId);
+        for (let id of data) {
             const index = this.findIndex(userSecretId, id);
             if (index === -1) {
                 storeLst.push({ nodeId: id.nodeId, contextId: id.contextId, options: id.options });
             }
             return;
-        });
+        }
         return storeLst;
     }
     deleteToStore(userSecretId, id) {
@@ -69,11 +70,12 @@ class PubSubStore extends spinal_core_connectorjs_1.Model {
         }
     }
     findIndex(userSecretId, id) {
+        var _a, _b;
         const data = this.getIds(userSecretId);
         if (data) {
             for (let i = 0; i < data.length; i++) {
                 const element = data[i];
-                if (element.contextId.get() === id.contextId && element.contextId.get() === id.nodeId) {
+                if (((_a = element.contextId) === null || _a === void 0 ? void 0 : _a.get()) === id.contextId && ((_b = element.nodeId) === null || _b === void 0 ? void 0 : _b.get()) === id.nodeId) {
                     if (!id.options)
                         return i;
                     else if (element.options && this._compareOptions(element.options.get(), id.options))

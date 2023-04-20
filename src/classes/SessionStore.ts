@@ -64,7 +64,6 @@ export class SessionStore {
         if (!Array.isArray(data)) data = [data];
 
         return data.map(id => this.store.deleteToStore(userId, id));
-
     }
 
     private _loadOrMakeConfigFile(connect: spinal.FileSystem): Promise<PubSubStore> {

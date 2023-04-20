@@ -48,7 +48,7 @@ class SocketHandler {
             console.log(`${sessionId} is connected`);
             const old_subscribed_data = SessionStore_1.default.getSubscribedData(sessionId);
             if (old_subscribed_data && old_subscribed_data.length > 0)
-                yield this._subscribe(socket, old_subscribed_data, true);
+                yield this._subscribe(socket, old_subscribed_data, false);
             this.listenSubscribeEvent(socket);
             this.listenUnsubscribeEvent(socket);
             this.listenDisconnectEvent(socket);
@@ -85,7 +85,9 @@ class SocketHandler {
             const sessionId = this._getSessionId(socket);
             const { obj: nodes, ids: idsFormatted } = yield this._checkAndFormatParams(ids);
             const result = idsFormatted.map((item) => (0, utils_1.getRoomNameFunc)(item.nodeId, item.contextId, nodes, item.options));
-            socket.emit(lib_1.SUBSCRIBED, result.length == 1 ? result[0] : result);
+            for (const obj of result) {
+                socket.emit(lib_1.SUBSCRIBED, obj);
+            }
             const idsToSave = yield this._bindNodes(socket, result, nodes);
             if (save)
                 SessionStore_1.default.saveSubscriptionData(sessionId, idsToSave);

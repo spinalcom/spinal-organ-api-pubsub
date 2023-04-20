@@ -44,15 +44,16 @@ export class PubSubStore extends Model {
         }
 
         if (!Array.isArray(data)) data = [data];
+        const ids = this.getIds(userSecretId);
 
-        data.map((id) => {
+        for (let id of data) {
             const index = this.findIndex(userSecretId, id);
             if (index === -1) {
-                storeLst.push({ nodeId: id.nodeId, contextId: id.contextId, options: id.options })
+                storeLst.push({ nodeId: id.nodeId, contextId: id.contextId, options: id.options });
             }
 
             return;
-        })
+        }
 
         return storeLst;
     }
@@ -78,14 +79,15 @@ export class PubSubStore extends Model {
     }
 
 
-    public findIndex(userSecretId, id: INodeId): number {
+
+    public findIndex(userSecretId: string, id: INodeId): number {
         const data = this.getIds(userSecretId);
 
         if (data) {
             for (let i = 0; i < data.length; i++) {
                 const element = data[i];
 
-                if (element.contextId.get() === id.contextId && element.contextId.get() === id.nodeId) {
+                if (element.contextId?.get() === id.contextId && element.nodeId?.get() === id.nodeId) {
                     if (!id.options) return i;
                     else if (element.options && this._compareOptions(element.options.get(), id.options)) return i;
                 };

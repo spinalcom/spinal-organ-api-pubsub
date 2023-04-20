@@ -329,22 +329,31 @@ class SpinalGraphUtils {
             const processes = [];
             let info = node.info;
             let element = yield node.getElement(true);
-            let infoProcess = info.bind(lodash.debounce(() => {
-                console.log(`(${info.id.get()} info changed) spinalCore bind execution`);
+            const callback = lodash.debounce(() => {
+                console.log(`(${info.id.get()} changed) spinalCore bind execution`);
                 this._sendSocketEvent(node, {
                     info: info.get(),
                     element: element === null || element === void 0 ? void 0 : element.get()
                 }, eventName);
-            }, 1000), false);
+            }, 1000);
+            let infoProcess = info.bind(callback, false);
+            // let infoProcess = info.bind(lodash.debounce(() => {
+            //     console.log(`(${info.id.get()} info changed) spinalCore bind execution`);
+            //     this._sendSocketEvent(node, {
+            //         info: info.get(),
+            //         element: element?.get()
+            //     }, eventName)
+            // }, 1000), false);
             processes.push(infoProcess);
             if (element) {
-                const elementProcess = element.bind(lodash.debounce(() => {
-                    console.log(`(${info.id.get()} element changed) spinalCore bind execution`);
-                    this._sendSocketEvent(node, {
-                        info: info.get(),
-                        element: element === null || element === void 0 ? void 0 : element.get()
-                    }, eventName);
-                }, 1000), false);
+                const elementProcess = element.bind(callback, false);
+                // const elementProcess = element.bind(lodash.debounce(() => {
+                //     console.log(`(${info.id.get()} element changed) spinalCore bind execution`);
+                //     this._sendSocketEvent(node, {
+                //         info: info.get(),
+                //         element: element?.get()
+                //     }, eventName)
+                // }, 1000), false);
                 processes.push(elementProcess);
             }
             this._addNodeToBindedNode(node, context, eventName, options, processes);

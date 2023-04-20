@@ -6,7 +6,7 @@ export declare class PubSubStore extends Model {
     deleteToStore(userSecretId: string, id: INodeId): boolean;
     getIds(userSecretId: string): Lst;
     reset(): void;
-    findIndex(userSecretId: any, id: INodeId): number;
+    findIndex(userSecretId: string, id: INodeId): number;
     private _compareOptions;
     private _deleteModelAttributes;
 }

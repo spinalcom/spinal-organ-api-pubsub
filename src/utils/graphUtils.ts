@@ -350,25 +350,34 @@ class SpinalGraphUtils {
         let info = node.info;
         let element = await node.getElement(true);
 
-
-        let infoProcess = info.bind(lodash.debounce(() => {
-            console.log(`(${info.id.get()} info changed) spinalCore bind execution`);
+        const callback = lodash.debounce(() => {
+            console.log(`(${info.id.get()} changed) spinalCore bind execution`);
             this._sendSocketEvent(node, {
                 info: info.get(),
                 element: element?.get()
             }, eventName)
-        }, 1000), false);
+        }, 1000)
+
+        let infoProcess = info.bind(callback, false);
+        // let infoProcess = info.bind(lodash.debounce(() => {
+        //     console.log(`(${info.id.get()} info changed) spinalCore bind execution`);
+        //     this._sendSocketEvent(node, {
+        //         info: info.get(),
+        //         element: element?.get()
+        //     }, eventName)
+        // }, 1000), false);
 
         processes.push(infoProcess);
 
         if (element) {
-            const elementProcess = element.bind(lodash.debounce(() => {
-                console.log(`(${info.id.get()} element changed) spinalCore bind execution`);
-                this._sendSocketEvent(node, {
-                    info: info.get(),
-                    element: element?.get()
-                }, eventName)
-            }, 1000), false);
+            const elementProcess = element.bind(callback, false);
+            // const elementProcess = element.bind(lodash.debounce(() => {
+            //     console.log(`(${info.id.get()} element changed) spinalCore bind execution`);
+            //     this._sendSocketEvent(node, {
+            //         info: info.get(),
+            //         element: element?.get()
+            //     }, eventName)
+            // }, 1000), false);
 
             processes.push(elementProcess);
         }
