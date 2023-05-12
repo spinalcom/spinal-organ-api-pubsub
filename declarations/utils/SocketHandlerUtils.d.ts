@@ -1,6 +1,6 @@
-import { ISubscribeOptions, INodeId, IGetNodeRes, INodeData, ISpinalIOMiddleware } from "../interfaces";
-import { SpinalNode } from "spinal-model-graph";
-import { Socket } from "socket.io";
+import { ISubscribeOptions, INodeId, IGetNodeRes, INodeData, ISpinalIOMiddleware } from '../interfaces';
+import { SpinalNode } from 'spinal-model-graph';
+import { Socket } from 'socket.io';
 export declare function checkAndFormatIds(socket: Socket, spinalIOMiddleware: ISpinalIOMiddleware, nodeIds: (string | number | INodeId)[], options: ISubscribeOptions): Promise<{
     ids: INodeData[];
     obj: {

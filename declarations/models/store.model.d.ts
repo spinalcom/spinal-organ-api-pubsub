@@ -1,5 +1,5 @@
-import { Lst, Model } from "spinal-core-connectorjs";
-import { INodeId } from "../interfaces";
+import { Lst, Model } from 'spinal-core-connectorjs';
+import { INodeId } from '../interfaces';
 export declare class PubSubStore extends Model {
     constructor();
     addToStore(userSecretId: string, data: INodeId | INodeId[]): Lst;

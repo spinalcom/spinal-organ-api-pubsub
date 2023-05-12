@@ -54,18 +54,23 @@ function getRoomNameFunc(nodeId, contextId, obj, options) {
         return { error, nodeId, status: constants_1.NOK_STATUS };
     }
     if (!node || !(node instanceof spinal_model_graph_1.SpinalNode)) {
-        error = !node ? `${nodeId} is not found` : `${nodeId} must be a spinalNode, SpinalContext`;
+        error = !node
+            ? `${nodeId} is not found`
+            : `${nodeId} must be a spinalNode, SpinalContext`;
         // error = new Error(message);
         return { error, nodeId, status: constants_1.NOK_STATUS };
     }
     if (!context || !(context instanceof spinal_model_graph_1.SpinalContext)) {
-        error = !context ? `the context ${contextId} is not found` : `${contextId} must be a SpinalContext`;
+        error = !context
+            ? `the context ${contextId} is not found`
+            : `${contextId} must be a SpinalContext`;
         // error = new Error(message);
         return { error, nodeId, status: constants_1.NOK_STATUS };
     }
     let roomId = node.getId().get();
     let eventNames = [roomId];
-    if (options.subscribeChildren && [interfaces_1.IScope.in_context, interfaces_1.IScope.tree_in_context].indexOf(options.subscribeChildScope) !== -1) {
+    if (options.subscribeChildren &&
+        [interfaces_1.IScope.in_context, interfaces_1.IScope.tree_in_context].indexOf(options.subscribeChildScope) !== -1) {
         if (!context || !(context instanceof spinal_model_graph_1.SpinalContext)) {
             let contextError;
             if (!contextId)
@@ -78,7 +83,13 @@ function getRoomNameFunc(nodeId, contextId, obj, options) {
         const namespaceId = context.getId().get();
         eventNames.push(`${namespaceId}:${roomId}`);
     }
-    return { error, nodeId, status: constants_1.OK_STATUS, eventNames, options };
+    return {
+        error,
+        nodeId,
+        status: constants_1.OK_STATUS,
+        eventNames,
+        options,
+    };
 }
 exports.getRoomNameFunc = getRoomNameFunc;
 function _formatNode(node, model) {
@@ -86,7 +97,7 @@ function _formatNode(node, model) {
         if (model) {
             return {
                 info: model.info,
-                element: model.element
+                element: model.element,
             };
         }
         const info = node.info;
@@ -102,18 +113,19 @@ function _structureDataFunc(ids, options) {
     ids = lodash.flattenDeep(ids);
     // let options = args[args.length - 1];
     // options = typeof options === "object" ? options : {};
-    return ids.map(id => (Object.assign(Object.assign({}, _formatId(id)), { options: _getOptions(id) || options })));
+    return ids.map((id) => (Object.assign(Object.assign({}, _formatId(id)), { options: _getOptions(id) || options })));
 }
 function _getNodes(socket, spinalMiddleware, ids) {
     // const obj = {};
     const promises = ids.map(({ nodeId, contextId, options }) => __awaiter(this, void 0, void 0, function* () {
         const res = {
+            subscription_data: { nodeId, contextId },
             nodeId,
             contextId,
             node: undefined,
             contextNode: undefined,
             options,
-            error: undefined
+            error: undefined,
         };
         try {
             res.contextNode = yield spinalMiddleware.getContext(contextId, socket);
@@ -128,21 +140,21 @@ function _getNodes(socket, spinalMiddleware, ids) {
 }
 function _formatId(id) {
     let node = { nodeId: undefined, contextId: undefined };
-    if (typeof id === "string") {
-        const ids = id.split("/");
+    if (typeof id === 'string') {
+        const ids = id.split('/');
         node.nodeId = ids.length <= 1 ? ids[0] : ids[1];
         node.contextId = ids.length <= 1 ? undefined : ids[0];
     }
-    else if (typeof id === "number") {
+    else if (typeof id === 'number') {
         node.nodeId = id;
     }
-    else if (typeof id === "object") {
+    else if (typeof id === 'object') {
         node = id;
     }
     return node;
 }
 function _getOptions(id) {
-    if (typeof id === "string" || typeof id === "number")
+    if (typeof id === 'string' || typeof id === 'number')
         return;
     if (id.options)
         return id.options;
@@ -153,10 +165,10 @@ function _removeDuplicate(nodes) {
     const data = nodes.reduce((arr, item) => {
         const found = arr.find(({ node, contextNode, options }) => {
             var _a, _b;
-            return (node === null || node === void 0 ? void 0 : node._server_id) === ((_a = item.node) === null || _a === void 0 ? void 0 : _a._server_id) &&
+            return ((node === null || node === void 0 ? void 0 : node._server_id) === ((_a = item.node) === null || _a === void 0 ? void 0 : _a._server_id) &&
                 (contextNode === null || contextNode === void 0 ? void 0 : contextNode._server_id) === ((_b = item.contextNode) === null || _b === void 0 ? void 0 : _b._server_id) &&
                 options.subscribeChildScope === item.options.subscribeChildScope &&
-                options.subscribeChildren === item.options.subscribeChildren;
+                options.subscribeChildren === item.options.subscribeChildren);
         });
         if (!found) {
             obj[item.nodeId] = item;

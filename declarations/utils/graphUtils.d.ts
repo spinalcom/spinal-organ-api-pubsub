@@ -1,7 +1,7 @@
 import { SpinalNode, SpinalContext } from 'spinal-env-viewer-graph-service';
-import { ISubscribeOptions } from '../interfaces';
-import SocketHandler from "../socket/socketHandlers";
-import { Socket } from "socket.io";
+import { INodeId, ISubscribeOptions } from '../interfaces';
+import SocketHandler from '../socket/socketHandlers';
+import { Socket } from 'socket.io';
 declare class SpinalGraphUtils {
     spinalConnection: spinal.FileSystem;
     private nodeBinded;
@@ -10,11 +10,11 @@ declare class SpinalGraphUtils {
     private constructor();
     static getInstance(): SpinalGraphUtils;
     init(socketHandler: SocketHandler): Promise<void>;
-    bindNode(node: SpinalNode<any>, context: SpinalContext<any>, options: ISubscribeOptions, eventName?: string, socket?: Socket): Promise<void>;
-    bindContextTree(startNode: SpinalNode<any>, context: SpinalContext<any>, socket: Socket): void;
-    bindChildNotInContext(node: SpinalNode<any>, socket: Socket): Promise<void>;
+    bindNode(node: SpinalNode<any>, context: SpinalContext<any>, options: ISubscribeOptions, eventName?: string, socket?: Socket, subscription_data?: INodeId): Promise<void>;
+    bindContextTree(startNode: SpinalNode<any>, context: SpinalContext<any>, socket: Socket, subscription_data: INodeId): void;
+    bindChildNotInContext(node: SpinalNode<any>, socket: Socket, subscription_data: INodeId): Promise<void>;
     rebindAllNodes(): Promise<void>;
-    bindTreeNotInContext(node: SpinalNode<any>, socket: Socket): Promise<void>;
+    bindTreeNotInContext(node: SpinalNode<any>, socket: Socket, subscription_data: INodeId): Promise<void>;
     private _getTreeNotInContext;
     private _rebindNode;
     private _unbindAllNodes;

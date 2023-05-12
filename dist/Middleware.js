@@ -31,6 +31,18 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __await = (this && this.__await) || function (v) { return this instanceof __await ? (this.v = v, this) : new __await(v); }
+var __asyncGenerator = (this && this.__asyncGenerator) || function (thisArg, _arguments, generator) {
+    if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
+    var g = generator.apply(thisArg, _arguments || []), i, q = [];
+    return i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i;
+    function verb(n) { if (g[n]) i[n] = function (v) { return new Promise(function (a, b) { q.push([n, v, a, b]) > 1 || resume(n, v); }); }; }
+    function resume(n, v) { try { step(g[n](v)); } catch (e) { settle(q[0][3], e); } }
+    function step(r) { r.value instanceof __await ? Promise.resolve(r.value.v).then(fulfill, reject) : settle(q[0][2], r); }
+    function fulfill(value) { resume("next", value); }
+    function reject(value) { resume("throw", value); }
+    function settle(f, v) { if (f(v), q.shift(), q.length) resume(q[0][0], q[0][1]); }
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Middleware = void 0;
 const spinal_core_connectorjs_1 = require("spinal-core-connectorjs");
@@ -45,12 +57,34 @@ class Middleware {
         if (connect)
             this.conn = connect;
         else {
-            const protocol = this.config.spinalConnector.protocol ? this.config.spinalConnector.protocol : 'http';
-            const host = this.config.spinalConnector.host + (this.config.spinalConnector.port ? `:${this.config.spinalConnector.port}` : '');
+            const protocol = this.config.spinalConnector.protocol
+                ? this.config.spinalConnector.protocol
+                : 'http';
+            const host = this.config.spinalConnector.host +
+                (this.config.spinalConnector.port
+                    ? `:${this.config.spinalConnector.port}`
+                    : '');
             const login = `${this.config.spinalConnector.user}:${this.config.spinalConnector.password}`;
             const connect_opt = `${protocol}://${login}@${host}/`;
             this.conn = spinal_core_connectorjs_1.spinalCore.connect(connect_opt);
+            this.iteratorGraph = this.geneGraph();
         }
+    }
+    geneGraph() {
+        return __asyncGenerator(this, arguments, function* geneGraph_1() {
+            const init = new Promise((resolve, reject) => {
+                spinal_core_connectorjs_1.spinalCore.load(this.conn, this.config.file.path, (graph) => {
+                    resolve(graph);
+                }, () => {
+                    console.error(`File does not exist in location ${config_1.config.file.path}`);
+                    reject();
+                });
+            });
+            const graph = yield __await(init);
+            while (true) {
+                yield yield __await(graph);
+            }
+        });
     }
     getNode(nodeId, contextId) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -67,7 +101,7 @@ class Middleware {
     }
     getNodeWithServerId(server_id) {
         return new Promise((resolve) => {
-            if (typeof spinal_core_connectorjs_1.FileSystem._objects[server_id] !== "undefined") {
+            if (typeof spinal_core_connectorjs_1.FileSystem._objects[server_id] !== 'undefined') {
                 return resolve(spinal_core_connectorjs_1.FileSystem._objects[server_id]);
             }
             this.conn.load_ptr(server_id, (node) => {
@@ -97,17 +131,18 @@ class Middleware {
     }
     getGraph() {
         return __awaiter(this, void 0, void 0, function* () {
-            return spinal_env_viewer_graph_service_1.SpinalGraphService.getGraph();
+            const g = yield this.iteratorGraph.next();
+            return g.value;
         });
     }
     getProfileGraph() {
         return __awaiter(this, void 0, void 0, function* () {
-            return spinal_env_viewer_graph_service_1.SpinalGraphService.getGraph();
+            return this.getGraph();
         });
     }
     getContext(contextId) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (typeof contextId === "undefined")
+            if (typeof contextId === 'undefined')
                 return;
             let node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(contextId.toString());
             if (node)
@@ -118,7 +153,7 @@ class Middleware {
             const graph = yield this.getGraph();
             if (graph) {
                 const contexts = yield graph.getChildren();
-                return contexts.find(el => {
+                return contexts.find((el) => {
                     if (el.getId().get() === contextId || el._server_id == contextId) {
                         //@ts-ignore
                         spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(el);

@@ -31,7 +31,7 @@ class PubSubStore extends spinal_core_connectorjs_1.Model {
         super();
         this.add_attr({
             id: (0, uuid_1.v4)(),
-            data: {}
+            data: {},
         });
     }
     addToStore(userSecretId, data) {
@@ -45,7 +45,11 @@ class PubSubStore extends spinal_core_connectorjs_1.Model {
         data.map((id) => {
             const index = this.findIndex(userSecretId, id);
             if (index === -1) {
-                storeLst.push({ nodeId: id.nodeId, contextId: id.contextId, options: id.options });
+                storeLst.push({
+                    nodeId: id.nodeId,
+                    contextId: id.contextId,
+                    options: id.options,
+                });
             }
             return;
         });
@@ -74,13 +78,14 @@ class PubSubStore extends spinal_core_connectorjs_1.Model {
         if (data) {
             for (let i = 0; i < data.length; i++) {
                 const element = data[i];
-                if (((_a = element.contextId) === null || _a === void 0 ? void 0 : _a.get()) === id.contextId && ((_b = element.nodeId) === null || _b === void 0 ? void 0 : _b.get()) === id.nodeId) {
+                if (((_a = element.contextId) === null || _a === void 0 ? void 0 : _a.get()) === id.contextId &&
+                    ((_b = element.nodeId) === null || _b === void 0 ? void 0 : _b.get()) === id.nodeId) {
                     if (!id.options)
                         return i;
-                    else if (element.options && this._compareOptions(element.options.get(), id.options))
+                    else if (element.options &&
+                        this._compareOptions(element.options.get(), id.options))
                         return i;
                 }
-                ;
             }
         }
         return -1;
@@ -88,7 +93,8 @@ class PubSubStore extends spinal_core_connectorjs_1.Model {
     _compareOptions(firstOption, secondOption) {
         if (!firstOption || !secondOption)
             return false;
-        if (firstOption.subscribeChildren === secondOption.subscribeChildren && firstOption.subscribeChildScope === secondOption.subscribeChildScope)
+        if (firstOption.subscribeChildren === secondOption.subscribeChildren &&
+            firstOption.subscribeChildScope === secondOption.subscribeChildScope)
             return true;
         return false;
     }
@@ -103,7 +109,8 @@ class PubSubStore extends spinal_core_connectorjs_1.Model {
         else if (model instanceof spinal_core_connectorjs_1.Model) {
             for (const attribute in model) {
                 const element = model[attribute];
-                if (!(element instanceof spinal_core_connectorjs_1.Model) || element._attribute_names.length === 0) {
+                if (!(element instanceof spinal_core_connectorjs_1.Model) ||
+                    element._attribute_names.length === 0) {
                     model.rem_attr(attribute);
                 }
                 else

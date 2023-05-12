@@ -1,5 +1,5 @@
-import { SpinalContext, SpinalNode } from "spinal-model-graph";
-import { ISubscribeOptions } from "./ISubscribeOptions";
+import { SpinalContext, SpinalNode } from 'spinal-model-graph';
+import { ISubscribeOptions } from './ISubscribeOptions';
 export interface INodeId {
     nodeId: string;
     contextId?: string;
@@ -11,5 +11,6 @@ export interface INodeData {
     options?: ISubscribeOptions;
     node?: SpinalNode<any>;
     contextNode?: SpinalContext<any>;
+    subscription_data?: INodeId;
     error?: string;
 }
