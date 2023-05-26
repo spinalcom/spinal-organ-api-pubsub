@@ -44,7 +44,9 @@ export class PubSubStore extends Model {
 
     if (!Array.isArray(data)) data = [data];
 
-    data.map((id) => {
+    const ids = this.getIds(userSecretId);
+
+    for (let id of data) {
       const index = this.findIndex(userSecretId, id);
       if (index === -1) {
         storeLst.push({
@@ -55,7 +57,7 @@ export class PubSubStore extends Model {
       }
 
       return;
-    });
+    }
 
     return storeLst;
   }
@@ -80,7 +82,7 @@ export class PubSubStore extends Model {
     }
   }
 
-  public findIndex(userSecretId, id: INodeId): number {
+  public findIndex(userSecretId: string, id: INodeId): number {
     const data = this.getIds(userSecretId);
 
     if (data) {
