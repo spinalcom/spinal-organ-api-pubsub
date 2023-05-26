@@ -22,6 +22,20 @@
  * with this file. If not, see
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -32,29 +46,31 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.spinalGraphUtils = exports.runSocketServer = void 0;
+exports.spinalGraphUtils = exports.Middleware = exports.runSocketServer = void 0;
 const socket_io_1 = require("socket.io");
 const config_1 = require("./config");
 const utils_1 = require("./utils");
 Object.defineProperty(exports, "spinalGraphUtils", { enumerable: true, get: function () { return utils_1.spinalGraphUtils; } });
-const socketHandlers_1 = require("./classes/socketHandlers");
-const spinal_core_connectorjs_1 = require("spinal-core-connectorjs");
-const socketMiddlewares_1 = require("./classes/socketMiddlewares");
-const SessionStore_1 = require("./classes/SessionStore");
-function runSocketServer(server, hubConnection, graph) {
+const socketHandlers_1 = require("./socket/socketHandlers");
+const Middleware_1 = require("./Middleware");
+Object.defineProperty(exports, "Middleware", { enumerable: true, get: function () { return Middleware_1.Middleware; } });
+const store_1 = require("./store");
+function runSocketServer(server, spinalIOMiddleware) {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
         let app = server || ((_a = config_1.config.server) === null || _a === void 0 ? void 0 : _a.port) || 8888;
         const io = new socket_io_1.Server(app, { pingTimeout: 30000, pingInterval: 25000 });
-        const connect = hubConnection || spinal_core_connectorjs_1.spinalCore.connect(`${config_1.config.spinalConnector.protocol}://${config_1.config.spinalConnector.user}:${config_1.config.spinalConnector.password}@${config_1.config.spinalConnector.host}:${config_1.config.spinalConnector.port}`);
-        utils_1.spinalGraphUtils.setIo(io);
-        yield utils_1.spinalGraphUtils.init(connect, graph);
-        yield SessionStore_1.default.init(connect);
-        (0, socketMiddlewares_1.storeMiddleWare)(io);
-        new socketHandlers_1.SocketHandler(io);
-        console.log("socket server is running");
+        spinalIOMiddleware = spinalIOMiddleware || new Middleware_1.Middleware();
+        const socketHandler = new socketHandlers_1.SocketHandler(io, spinalIOMiddleware);
+        yield utils_1.spinalGraphUtils.init(socketHandler);
+        yield store_1.SessionStore.getInstance().init(spinalIOMiddleware.conn);
+        console.log('socket server is running');
         return io;
     });
 }
 exports.runSocketServer = runSocketServer;
+///////////////////////////////////////////////////
+//              Exports
+///////////////////////////////////////////////////
+__exportStar(require("./interfaces"), exports);
 //# sourceMappingURL=index.js.map
