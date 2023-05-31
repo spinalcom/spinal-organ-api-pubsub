@@ -64,6 +64,8 @@ function runSocketServer(server, spinalIOMiddleware) {
         const socketHandler = new socketHandlers_1.SocketHandler(io, spinalIOMiddleware);
         yield utils_1.spinalGraphUtils.init(socketHandler);
         yield store_1.SessionStore.getInstance().init(spinalIOMiddleware.conn);
+        if (spinalIOMiddleware.logService)
+            spinalIOMiddleware.logService.createLog('restart', 'restart');
         console.log('socket server is running');
         return io;
     });

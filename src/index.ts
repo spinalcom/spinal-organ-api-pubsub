@@ -41,6 +41,9 @@ export async function runSocketServer(
   await spinalGraphUtils.init(socketHandler);
   await SessionStore.getInstance().init(spinalIOMiddleware.conn);
 
+  if (spinalIOMiddleware.logService)
+    spinalIOMiddleware.logService.createLog('restart', 'restart');
+
   console.log('socket server is running');
   return io;
 }
