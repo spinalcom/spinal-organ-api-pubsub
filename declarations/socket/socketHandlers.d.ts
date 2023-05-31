@@ -29,5 +29,10 @@ export declare class SocketHandler {
     private _getSessionId;
     private _setSessionMiddleware;
     private _getAllSocketInRooms;
+    _createLog(socket: any, type: string, action: string, nodeInfo?: {
+        id: string;
+        name: string;
+        [key: string]: string;
+    }): void | Promise<void>;
 }
 export default SocketHandler;

@@ -41,6 +41,7 @@ import {FileSystem, BindProcess} from 'spinal-core-connectorjs';
 import * as lodash from 'lodash';
 import SocketHandler from '../socket/socketHandlers';
 import {Socket} from 'socket.io';
+import {RECEIVE_EVENT, SEND_EVENT} from 'spinal-service-pubsub-logs';
 
 const relationToExclude = [SpinalTimeSeries.relationName];
 
@@ -203,6 +204,13 @@ class SpinalGraphUtils {
           status: OK_STATUS,
         });
         socket.join(_eventName);
+
+        // Log
+        await this.socketHandler._createLog(
+          socket,
+          SEND_EVENT,
+          `${SEND_EVENT}_${SUBSCRIBED}_event`
+        );
       }
 
       await this._bindInfoAndElement(

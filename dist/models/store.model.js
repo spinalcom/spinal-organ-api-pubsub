@@ -42,7 +42,8 @@ class PubSubStore extends spinal_core_connectorjs_1.Model {
         }
         if (!Array.isArray(data))
             data = [data];
-        data.map((id) => {
+        const ids = this.getIds(userSecretId);
+        for (let id of data) {
             const index = this.findIndex(userSecretId, id);
             if (index === -1) {
                 storeLst.push({
@@ -52,7 +53,7 @@ class PubSubStore extends spinal_core_connectorjs_1.Model {
                 });
             }
             return;
-        });
+        }
         return storeLst;
     }
     deleteToStore(userSecretId, id) {

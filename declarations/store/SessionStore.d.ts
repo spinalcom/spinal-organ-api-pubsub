@@ -1,6 +1,6 @@
-import { Lst } from "spinal-core-connectorjs";
-import { PubSubStore } from "../models";
-import { INodeId } from "../interfaces";
+import { Lst } from 'spinal-core-connectorjs';
+import { PubSubStore } from '../models';
+import { INodeId } from '../interfaces';
 export declare class SessionStore {
     private static instance;
     private store;

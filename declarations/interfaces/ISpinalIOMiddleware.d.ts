@@ -1,9 +1,11 @@
-import { Socket, Server } from "socket.io";
-import { SpinalContext, SpinalGraph, SpinalNode } from "spinal-model-graph";
-import { IConfig } from "../interfaces";
+import { Socket, Server } from 'socket.io';
+import { SpinalContext, SpinalGraph, SpinalNode } from 'spinal-model-graph';
+import { IConfig } from '../interfaces';
+import { ILogMiddleware } from './ILogMiddleware';
 export interface ISpinalIOMiddleware {
     config: IConfig;
     conn: spinal.FileSystem;
+    logService?: ILogMiddleware;
     getGraph: () => Promise<SpinalGraph>;
     getProfileGraph: (socket?: Socket) => Promise<SpinalGraph>;
     tokenCheckMiddleware?: (io: Server) => void;

@@ -24,11 +24,19 @@
 
 import {Server, Socket} from 'socket.io';
 import {
+  SEND_EVENT,
+  RECEIVE_EVENT,
+  CONNECTION_EVENT,
+  DISCONNECTION_EVENT,
+} from 'spinal-service-pubsub-logs';
+
+import {
   _formatNode,
   checkAndFormatIds,
   getRoomNameFunc,
   spinalGraphUtils,
 } from '../utils';
+
 import {
   INodeId,
   INodeData,
@@ -36,6 +44,7 @@ import {
   IAction,
   ISpinalIOMiddleware,
 } from '../interfaces';
+
 import {
   OK_STATUS,
   SUBSCRIBE_EVENT,
@@ -45,9 +54,11 @@ import {
   UNSUBSCRIBED,
   EVENT_NAMES,
 } from '../constants';
+
 import {SessionStore} from '../store';
 import {v4 as uuidv4} from 'uuid';
 import {SpinalNode} from 'spinal-model-graph';
+import {type} from 'os';
 
 const sessionStore = SessionStore.getInstance();
 
@@ -92,12 +103,18 @@ export class SocketHandler {
   public listenConnectionEvent() {
     this.io.on('connection', async (socket: Socket) => {
       const sessionId = this._getSessionId(socket);
+
       socket.emit(SESSION_EVENT, sessionId);
+
+      // log
+      await this._createLog(socket, CONNECTION_EVENT, `connected`);
+
       console.log(`${sessionId} is connected`);
 
       const old_subscribed_data = sessionStore.getSubscribedData(sessionId);
       if (old_subscribed_data && old_subscribed_data.length > 0)
         await this._subscribe(socket, old_subscribed_data, false);
+
       this.listenSubscribeEvent(socket);
       this.listenUnsubscribeEvent(socket);
       this.listenDisconnectEvent(socket);
@@ -109,6 +126,12 @@ export class SocketHandler {
       const sessionId = this._getSessionId(socket);
       console.log('get subscribe request from', sessionId);
       this._subscribe(socket, args);
+
+      await this._createLog(
+        socket,
+        RECEIVE_EVENT,
+        `${RECEIVE_EVENT}_${SUBSCRIBE_EVENT}_event`
+      );
     });
   }
 
@@ -126,7 +149,14 @@ export class SocketHandler {
       const idsToRemove = await this._leaveRoom(socket, result, nodes);
       socket.emit(UNSUBSCRIBED, result.length == 1 ? result[0] : result);
 
-      sessionStore.deleteSubscriptionData(sessionId, idsToRemove);
+      await sessionStore.deleteSubscriptionData(sessionId, idsToRemove);
+
+      // log
+      await this._createLog(
+        socket,
+        RECEIVE_EVENT,
+        `${RECEIVE_EVENT}_${UNSUBSCRIBED}_event`
+      );
     });
   }
 
@@ -135,6 +165,7 @@ export class SocketHandler {
       console.log(
         `${socket['sessionId']} is disconnected for reason : ${reason}`
       );
+      this._createLog(socket, DISCONNECTION_EVENT, 'disconnected');
     });
   }
 
@@ -166,6 +197,16 @@ export class SocketHandler {
       const sessionId = this._getSessionId(socket);
       const subscription_data = this.getSubscriptionData(eventName, sessionId);
       socket.emit(eventName, {data: {...data, subscription_data}, status});
+
+      const event = data?.event?.name || eventName;
+
+      // log
+      await this._createLog(
+        socket,
+        SEND_EVENT,
+        `${SEND_EVENT}_${event}_event`,
+        data.node
+      );
     }
 
     // this.io.to(eventName).emit(eventName, {data, status});
@@ -194,6 +235,7 @@ export class SocketHandler {
     for (const obj of result) {
       socket.emit(SUBSCRIBED, obj);
     }
+
     // socket.emit(SUBSCRIBED, result.length == 1 ? result[0] : result);
 
     const idsToSave = await this._bindNodes(socket, result, nodes, sessionId);
@@ -306,6 +348,24 @@ export class SocketHandler {
     return Array.from(socketIdSet).map((id) => {
       return this.io.sockets.sockets.get(id);
     });
+  }
+
+  public _createLog(
+    socket: any,
+    type: string,
+    action: string,
+    nodeInfo?: {id: string; name: string; [key: string]: string}
+  ) {
+    if (!this.spinalIOMiddleware.logService) return;
+
+    let targetInfo = socket.userInfo;
+
+    return this.spinalIOMiddleware.logService.createLog(
+      type,
+      action,
+      targetInfo,
+      nodeInfo
+    );
   }
 }
 

@@ -1,1 +1,1 @@
-export * from "./SessionStore";
+export * from './SessionStore';

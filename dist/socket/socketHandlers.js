@@ -33,6 +33,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SocketHandler = void 0;
+const spinal_service_pubsub_logs_1 = require("spinal-service-pubsub-logs");
 const utils_1 = require("../utils");
 const constants_1 = require("../constants");
 const store_1 = require("../store");
@@ -66,6 +67,8 @@ class SocketHandler {
         this.io.on('connection', (socket) => __awaiter(this, void 0, void 0, function* () {
             const sessionId = this._getSessionId(socket);
             socket.emit(constants_1.SESSION_EVENT, sessionId);
+            // log
+            yield this._createLog(socket, spinal_service_pubsub_logs_1.CONNECTION_EVENT, `connected`);
             console.log(`${sessionId} is connected`);
             const old_subscribed_data = sessionStore.getSubscribedData(sessionId);
             if (old_subscribed_data && old_subscribed_data.length > 0)
@@ -80,6 +83,7 @@ class SocketHandler {
             const sessionId = this._getSessionId(socket);
             console.log('get subscribe request from', sessionId);
             this._subscribe(socket, args);
+            yield this._createLog(socket, spinal_service_pubsub_logs_1.RECEIVE_EVENT, `${spinal_service_pubsub_logs_1.RECEIVE_EVENT}_${constants_1.SUBSCRIBE_EVENT}_event`);
         }));
     }
     listenUnsubscribeEvent(socket) {
@@ -90,15 +94,19 @@ class SocketHandler {
             const result = idsFormatted.map((item) => (0, utils_1.getRoomNameFunc)(item.nodeId, item.contextId, nodes, item.options));
             const idsToRemove = yield this._leaveRoom(socket, result, nodes);
             socket.emit(constants_1.UNSUBSCRIBED, result.length == 1 ? result[0] : result);
-            sessionStore.deleteSubscriptionData(sessionId, idsToRemove);
+            yield sessionStore.deleteSubscriptionData(sessionId, idsToRemove);
+            // log
+            yield this._createLog(socket, spinal_service_pubsub_logs_1.RECEIVE_EVENT, `${spinal_service_pubsub_logs_1.RECEIVE_EVENT}_${constants_1.UNSUBSCRIBED}_event`);
         }));
     }
     listenDisconnectEvent(socket) {
         socket.on('disconnect', (reason) => {
             console.log(`${socket['sessionId']} is disconnected for reason : ${reason}`);
+            this._createLog(socket, spinal_service_pubsub_logs_1.DISCONNECTION_EVENT, 'disconnected');
         });
     }
     sendSocketEvent(node, model, eventName, action) {
+        var _a;
         return __awaiter(this, void 0, void 0, function* () {
             const status = constants_1.OK_STATUS;
             const dataFormatted = yield (0, utils_1._formatNode)(node, model);
@@ -116,8 +124,10 @@ class SocketHandler {
                 const sessionId = this._getSessionId(socket);
                 const subscription_data = this.getSubscriptionData(eventName, sessionId);
                 socket.emit(eventName, { data: Object.assign(Object.assign({}, data), { subscription_data }), status });
+                const event = ((_a = data === null || data === void 0 ? void 0 : data.event) === null || _a === void 0 ? void 0 : _a.name) || eventName;
+                // log
+                yield this._createLog(socket, spinal_service_pubsub_logs_1.SEND_EVENT, `${spinal_service_pubsub_logs_1.SEND_EVENT}_${event}_event`, data.node);
             }
-            // this.io.to(eventName).emit(eventName, {data, status});
         });
     }
     //////////////////////////////////////////
@@ -204,6 +214,12 @@ class SocketHandler {
         return Array.from(socketIdSet).map((id) => {
             return this.io.sockets.sockets.get(id);
         });
+    }
+    _createLog(socket, type, action, nodeInfo) {
+        if (!this.spinalIOMiddleware.logService)
+            return;
+        let targetInfo = socket.userInfo;
+        return this.spinalIOMiddleware.logService.createLog(type, action, targetInfo, nodeInfo);
     }
 }
 exports.SocketHandler = SocketHandler;
