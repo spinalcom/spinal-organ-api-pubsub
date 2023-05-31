@@ -106,7 +106,6 @@ class SocketHandler {
         }));
     }
     sendSocketEvent(node, model, eventName, action) {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
             const status = constants_1.OK_STATUS;
             const dataFormatted = yield (0, utils_1._formatNode)(node, model);
@@ -124,10 +123,11 @@ class SocketHandler {
                 const sessionId = this._getSessionId(socket);
                 const subscription_data = this.getSubscriptionData(eventName, sessionId);
                 socket.emit(eventName, { data: Object.assign(Object.assign({}, data), { subscription_data }), status });
-                const event = ((_a = data === null || data === void 0 ? void 0 : data.event) === null || _a === void 0 ? void 0 : _a.name) || 'updated';
+                const event = 'updated';
                 // log
                 yield this._createLog(socket, spinal_service_pubsub_logs_1.SEND_EVENT, `${spinal_service_pubsub_logs_1.SEND_EVENT}_${event}_event`, data.node);
             }
+            // this.io.to(eventName).emit(eventName, {data, status});
         });
     }
     //////////////////////////////////////////

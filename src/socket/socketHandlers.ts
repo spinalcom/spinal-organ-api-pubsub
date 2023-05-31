@@ -198,7 +198,7 @@ export class SocketHandler {
       const subscription_data = this.getSubscriptionData(eventName, sessionId);
       socket.emit(eventName, {data: {...data, subscription_data}, status});
 
-      const event = data?.event?.name || 'updated';
+      const event = 'updated';
 
       // log
       await this._createLog(
