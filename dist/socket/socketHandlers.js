@@ -82,7 +82,7 @@ class SocketHandler {
         socket.on(constants_1.SUBSCRIBE_EVENT, (...args) => __awaiter(this, void 0, void 0, function* () {
             const sessionId = this._getSessionId(socket);
             console.log('get subscribe request from', sessionId);
-            this._subscribe(socket, args);
+            yield this._subscribe(socket, args);
             yield this._createLog(socket, spinal_service_pubsub_logs_1.RECEIVE_EVENT, `${spinal_service_pubsub_logs_1.RECEIVE_EVENT}_${constants_1.SUBSCRIBE_EVENT}_event`);
         }));
     }
@@ -100,10 +100,10 @@ class SocketHandler {
         }));
     }
     listenDisconnectEvent(socket) {
-        socket.on('disconnect', (reason) => {
+        socket.on('disconnect', (reason) => __awaiter(this, void 0, void 0, function* () {
             console.log(`${socket['sessionId']} is disconnected for reason : ${reason}`);
-            this._createLog(socket, spinal_service_pubsub_logs_1.DISCONNECTION_EVENT, 'disconnected');
-        });
+            yield this._createLog(socket, spinal_service_pubsub_logs_1.DISCONNECTION_EVENT, 'disconnected');
+        }));
     }
     sendSocketEvent(node, model, eventName, action) {
         var _a;
@@ -124,7 +124,7 @@ class SocketHandler {
                 const sessionId = this._getSessionId(socket);
                 const subscription_data = this.getSubscriptionData(eventName, sessionId);
                 socket.emit(eventName, { data: Object.assign(Object.assign({}, data), { subscription_data }), status });
-                const event = ((_a = data === null || data === void 0 ? void 0 : data.event) === null || _a === void 0 ? void 0 : _a.name) || eventName;
+                const event = ((_a = data === null || data === void 0 ? void 0 : data.event) === null || _a === void 0 ? void 0 : _a.name) || 'updated';
                 // log
                 yield this._createLog(socket, spinal_service_pubsub_logs_1.SEND_EVENT, `${spinal_service_pubsub_logs_1.SEND_EVENT}_${event}_event`, data.node);
             }

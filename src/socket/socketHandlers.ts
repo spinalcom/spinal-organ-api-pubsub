@@ -125,7 +125,7 @@ export class SocketHandler {
     socket.on(SUBSCRIBE_EVENT, async (...args) => {
       const sessionId = this._getSessionId(socket);
       console.log('get subscribe request from', sessionId);
-      this._subscribe(socket, args);
+      await this._subscribe(socket, args);
 
       await this._createLog(
         socket,
@@ -161,11 +161,11 @@ export class SocketHandler {
   }
 
   public listenDisconnectEvent(socket: Socket) {
-    socket.on('disconnect', (reason) => {
+    socket.on('disconnect', async (reason) => {
       console.log(
         `${socket['sessionId']} is disconnected for reason : ${reason}`
       );
-      this._createLog(socket, DISCONNECTION_EVENT, 'disconnected');
+      await this._createLog(socket, DISCONNECTION_EVENT, 'disconnected');
     });
   }
 
@@ -198,7 +198,7 @@ export class SocketHandler {
       const subscription_data = this.getSubscriptionData(eventName, sessionId);
       socket.emit(eventName, {data: {...data, subscription_data}, status});
 
-      const event = data?.event?.name || eventName;
+      const event = data?.event?.name || 'updated';
 
       // log
       await this._createLog(

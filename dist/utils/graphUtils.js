@@ -41,7 +41,6 @@ const interfaces_1 = require("../interfaces");
 const constants_1 = require("../constants");
 const spinal_core_connectorjs_1 = require("spinal-core-connectorjs");
 const lodash = require("lodash");
-const spinal_service_pubsub_logs_1 = require("spinal-service-pubsub-logs");
 const relationToExclude = [spinal_model_timeseries_1.SpinalTimeSeries.relationName];
 class SpinalGraphUtils {
     constructor() {
@@ -172,8 +171,12 @@ class SpinalGraphUtils {
                         status: constants_1.OK_STATUS,
                     });
                     socket.join(_eventName);
-                    // Log
-                    yield this.socketHandler._createLog(socket, spinal_service_pubsub_logs_1.SEND_EVENT, `${spinal_service_pubsub_logs_1.SEND_EVENT}_${constants_1.SUBSCRIBED}_event`);
+                    // // Log
+                    // await this.socketHandler._createLog(
+                    //   socket,
+                    //   SEND_EVENT,
+                    //   `${SEND_EVENT}_${SUBSCRIBED}_event`
+                    // );
                 }
                 yield this._bindInfoAndElement(node, context, _eventName, options, subscription_data);
                 if (options.subscribeChildren) {

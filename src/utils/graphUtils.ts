@@ -205,12 +205,12 @@ class SpinalGraphUtils {
         });
         socket.join(_eventName);
 
-        // Log
-        await this.socketHandler._createLog(
-          socket,
-          SEND_EVENT,
-          `${SEND_EVENT}_${SUBSCRIBED}_event`
-        );
+        // // Log
+        // await this.socketHandler._createLog(
+        //   socket,
+        //   SEND_EVENT,
+        //   `${SEND_EVENT}_${SUBSCRIBED}_event`
+        // );
       }
 
       await this._bindInfoAndElement(
