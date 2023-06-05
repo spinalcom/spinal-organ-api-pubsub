@@ -21,7 +21,7 @@ export declare class SocketHandler {
         element: {
             [key: string]: any;
         };
-    }, eventName: string, action?: IAction): Promise<void>;
+    }, eventName: string, action?: IAction, socket?: Socket): Promise<void>;
     private _subscribe;
     private _checkAndFormatParams;
     private _bindNodes;
