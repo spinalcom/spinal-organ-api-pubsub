@@ -210,7 +210,7 @@ class SpinalGraphUtils {
         context,
         _eventName,
         options,
-        subscription_data
+        socket
       );
 
       if (options.subscribeChildren) {
@@ -427,54 +427,38 @@ class SpinalGraphUtils {
     context: SpinalContext,
     eventName: string,
     options: ISubscribeOptions = {},
-    subscription_data?: INodeId
+    socket: Socket
   ) {
     const nodeId = node.getId().get();
-
-    const _temp = this.nodeBinded.get(nodeId);
-    if (_temp && _temp[eventName]?.bindProcesses?.length > 0) return;
-
-    const processes = [];
     let info = node.info;
     let element = await node.getElement(true);
 
-    let infoProcess = info.bind(
-      lodash.debounce(async () => {
-        console.log(
-          `(${info.id.get()} info changed) spinalCore bind execution`
-        );
-        await this.socketHandler.sendSocketEvent(
-          node,
-          {
-            info: info.get(),
-            element: element?.get(),
-          },
-          eventName
-        );
-      }, 1000),
-      false
-    );
+    const callbackDebounce = lodash.debounce(async () => {
+      console.log(`(${info.name.get()} changed) spinalCore bind execution`);
 
+      await this.socketHandler.sendSocketEvent(
+        node,
+        {
+          info: info.get(),
+          element: element?.get(),
+        },
+        eventName
+      );
+    }, 1000);
+
+    const _temp = this.nodeBinded.get(nodeId);
+    if (_temp && _temp[eventName]?.bindProcesses?.length > 0) {
+      callbackDebounce();
+      return;
+    }
+
+    const processes = [];
+
+    let infoProcess = info.bind(callbackDebounce, true);
     processes.push(infoProcess);
 
     if (element) {
-      const elementProcess = element.bind(
-        lodash.debounce(async () => {
-          console.log(
-            `(${info.id.get()} element changed) spinalCore bind execution`
-          );
-          await this.socketHandler.sendSocketEvent(
-            node,
-            {
-              info: info.get(),
-              element: element?.get(),
-            },
-            eventName
-          );
-        }, 1000),
-        false
-      );
-
+      const elementProcess = element.bind(callbackDebounce, true);
       processes.push(elementProcess);
     }
 

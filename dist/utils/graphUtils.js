@@ -172,7 +172,7 @@ class SpinalGraphUtils {
                     });
                     socket.join(_eventName);
                 }
-                yield this._bindInfoAndElement(node, context, _eventName, options, subscription_data);
+                yield this._bindInfoAndElement(node, context, _eventName, options, socket);
                 if (options.subscribeChildren) {
                     switch (options.subscribeChildScope) {
                         case interfaces_1.IScope.in_context:
@@ -330,32 +330,29 @@ class SpinalGraphUtils {
         });
         return lodash.flattenDeep(t);
     }
-    _bindInfoAndElement(node, context, eventName, options = {}, subscription_data) {
+    _bindInfoAndElement(node, context, eventName, options = {}, socket) {
         var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             const nodeId = node.getId().get();
-            const _temp = this.nodeBinded.get(nodeId);
-            if (_temp && ((_b = (_a = _temp[eventName]) === null || _a === void 0 ? void 0 : _a.bindProcesses) === null || _b === void 0 ? void 0 : _b.length) > 0)
-                return;
-            const processes = [];
             let info = node.info;
             let element = yield node.getElement(true);
-            let infoProcess = info.bind(lodash.debounce(() => __awaiter(this, void 0, void 0, function* () {
-                console.log(`(${info.id.get()} info changed) spinalCore bind execution`);
+            const callbackDebounce = lodash.debounce(() => __awaiter(this, void 0, void 0, function* () {
+                console.log(`(${info.name.get()} changed) spinalCore bind execution`);
                 yield this.socketHandler.sendSocketEvent(node, {
                     info: info.get(),
                     element: element === null || element === void 0 ? void 0 : element.get(),
                 }, eventName);
-            }), 1000), false);
+            }), 1000);
+            const _temp = this.nodeBinded.get(nodeId);
+            if (_temp && ((_b = (_a = _temp[eventName]) === null || _a === void 0 ? void 0 : _a.bindProcesses) === null || _b === void 0 ? void 0 : _b.length) > 0) {
+                callbackDebounce();
+                return;
+            }
+            const processes = [];
+            let infoProcess = info.bind(callbackDebounce, true);
             processes.push(infoProcess);
             if (element) {
-                const elementProcess = element.bind(lodash.debounce(() => __awaiter(this, void 0, void 0, function* () {
-                    console.log(`(${info.id.get()} element changed) spinalCore bind execution`);
-                    yield this.socketHandler.sendSocketEvent(node, {
-                        info: info.get(),
-                        element: element === null || element === void 0 ? void 0 : element.get(),
-                    }, eventName);
-                }), 1000), false);
+                const elementProcess = element.bind(callbackDebounce, true);
                 processes.push(elementProcess);
             }
             this._addNodeToBindedNode(node, context, eventName, options, processes);

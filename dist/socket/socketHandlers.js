@@ -98,7 +98,7 @@ class SocketHandler {
             console.log(`${socket['sessionId']} is disconnected for reason : ${reason}`);
         });
     }
-    sendSocketEvent(node, model, eventName, action) {
+    sendSocketEvent(node, model, eventName, action, socket) {
         return __awaiter(this, void 0, void 0, function* () {
             const status = constants_1.OK_STATUS;
             const dataFormatted = yield (0, utils_1._formatNode)(node, model);
@@ -110,14 +110,15 @@ class SocketHandler {
                 },
                 node: dataFormatted,
             };
-            console.log(`(${dataFormatted.info.id} changed) send new data with socket`, data);
-            const sockets = yield this._getAllSocketInRooms(eventName);
-            for (const socket of sockets || []) {
-                const sessionId = this._getSessionId(socket);
+            console.log(`(${dataFormatted.info.name} changed) send new data with socket`, data);
+            const sockets = socket
+                ? [socket]
+                : yield this._getAllSocketInRooms(eventName);
+            for (const _socket of sockets || []) {
+                const sessionId = this._getSessionId(_socket);
                 const subscription_data = this.getSubscriptionData(eventName, sessionId);
-                socket.emit(eventName, { data: Object.assign(Object.assign({}, data), { subscription_data }), status });
+                _socket.emit(eventName, { data: Object.assign(Object.assign({}, data), { subscription_data }), status });
             }
-            // this.io.to(eventName).emit(eventName, {data, status});
         });
     }
     //////////////////////////////////////////

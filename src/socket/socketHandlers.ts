@@ -142,7 +142,8 @@ export class SocketHandler {
     node: SpinalNode,
     model: {info: {[key: string]: any}; element: {[key: string]: any}},
     eventName: string,
-    action?: IAction
+    action?: IAction,
+    socket?: Socket
   ) {
     const status = OK_STATUS;
     const dataFormatted = await _formatNode(node, model);
@@ -156,19 +157,19 @@ export class SocketHandler {
     };
 
     console.log(
-      `(${dataFormatted.info.id} changed) send new data with socket`,
+      `(${dataFormatted.info.name} changed) send new data with socket`,
       data
     );
 
-    const sockets = await this._getAllSocketInRooms(eventName);
+    const sockets = socket
+      ? [socket]
+      : await this._getAllSocketInRooms(eventName);
 
-    for (const socket of sockets || []) {
-      const sessionId = this._getSessionId(socket);
+    for (const _socket of sockets || []) {
+      const sessionId = this._getSessionId(_socket);
       const subscription_data = this.getSubscriptionData(eventName, sessionId);
-      socket.emit(eventName, {data: {...data, subscription_data}, status});
+      _socket.emit(eventName, {data: {...data, subscription_data}, status});
     }
-
-    // this.io.to(eventName).emit(eventName, {data, status});
   }
 
   //////////////////////////////////////////
