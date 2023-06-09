@@ -1,5 +1,6 @@
+"use strict";
 /*
- * Copyright 2021 SpinalCom - www.spinalcom.com
+ * Copyright 2023 SpinalCom - www.spinalcom.com
  *
  * This file is part of SpinalCore.
  *
@@ -21,12 +22,5 @@
  * with this file. If not, see
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
-
-export {IConnectionInfo} from './IConnectionInfo';
-export {ISubscribeOptions, IScope} from './ISubscribeOptions';
-export {IGetNodeRes} from './IGetNodeRes';
-export {INodeId, INodeData} from './INodeIds';
-export {IAction} from './IAction';
-export {IConfig} from './IConfig';
-export {ISpinalIOMiddleware} from './ISpinalIOMiddleware';
-export * from './IRecursionArg';
+Object.defineProperty(exports, "__esModule", { value: true });
+//# sourceMappingURL=IRecursionArg.js.map

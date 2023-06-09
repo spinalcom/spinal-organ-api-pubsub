@@ -5,3 +5,4 @@ export { INodeId, INodeData } from './INodeIds';
 export { IAction } from './IAction';
 export { IConfig } from './IConfig';
 export { ISpinalIOMiddleware } from './ISpinalIOMiddleware';
+export * from './IRecursionArg';
