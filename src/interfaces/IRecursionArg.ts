@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 SpinalCom - www.spinalcom.com
+ * Copyright 2023 SpinalCom - www.spinalcom.com
  *
  * This file is part of SpinalCore.
  *
@@ -22,11 +22,15 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 
-export {IConnectionInfo} from './IConnectionInfo';
-export {ISubscribeOptions, IScope} from './ISubscribeOptions';
-export {IGetNodeRes} from './IGetNodeRes';
-export {INodeId, INodeData} from './INodeIds';
-export {IAction} from './IAction';
-export {IConfig} from './IConfig';
-export {ISpinalIOMiddleware} from './ISpinalIOMiddleware';
-export * from './IRecursionArg';
+import {SpinalNode, SpinalContext} from 'spinal-env-viewer-graph-service';
+import {INodeId, ISubscribeOptions} from '../';
+import {Socket} from 'socket.io';
+
+export interface IRecursionArg {
+  node: SpinalNode<any>;
+  context: SpinalContext<any>;
+  options: ISubscribeOptions;
+  eventName?: string;
+  socket?: Socket;
+  subscription_data?: INodeId;
+}
