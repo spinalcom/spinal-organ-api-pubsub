@@ -23,12 +23,6 @@
  */
 
 import {Server, Socket} from 'socket.io';
-import {
-  SEND_EVENT,
-  RECEIVE_EVENT,
-  CONNECTION_EVENT,
-  DISCONNECTION_EVENT,
-} from 'spinal-service-pubsub-logs';
 
 import {
   _formatNode,
@@ -108,7 +102,10 @@ export class SocketHandler {
 
       console.log(`${sessionId} is connected`);
 
-      const old_subscribed_data = sessionStore.getSubscribedData(sessionId);
+      const old_subscribed_data = await sessionStore.getSubscribedData(
+        sessionId
+      );
+
       if (old_subscribed_data && old_subscribed_data.length > 0)
         await this._subscribe(socket, old_subscribed_data, false);
 
@@ -216,7 +213,7 @@ export class SocketHandler {
 
     const idsToSave = await this._bindNodes(socket, result, nodes, sessionId);
 
-    if (save) sessionStore.saveSubscriptionData(sessionId, idsToSave);
+    if (save) await sessionStore.saveSubscriptionData(sessionId, idsToSave);
   }
 
   private _checkAndFormatParams(

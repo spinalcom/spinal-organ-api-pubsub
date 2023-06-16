@@ -22,9 +22,10 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 
-import {Lst, Model, spinalCore} from 'spinal-core-connectorjs';
+import {Lst, Model, Ptr, spinalCore} from 'spinal-core-connectorjs';
 import {INodeId, ISubscribeOptions} from '../interfaces';
 import {v4 as uuidv4} from 'uuid';
+import {resolve} from 'path';
 
 export class PubSubStore extends Model {
   constructor() {
@@ -35,19 +36,16 @@ export class PubSubStore extends Model {
     });
   }
 
-  public addToStore(userSecretId: string, data: INodeId | INodeId[]): Lst {
-    let storeLst = this.data[userSecretId];
-    if (!storeLst) {
-      storeLst = new Lst();
-      this.data.add_attr(userSecretId, storeLst);
-    }
+  public async addToStore(
+    userSecretId: string,
+    data: INodeId | INodeId[]
+  ): Promise<Lst> {
+    const storeLst: any = await this.getUserStoreLst(userSecretId, true);
 
     if (!Array.isArray(data)) data = [data];
 
-    const ids = this.getIds(userSecretId);
-
     for (let id of data) {
-      const index = this.findIndex(userSecretId, id);
+      const index = this.findIndex(storeLst, id);
       if (index === -1) {
         storeLst.push({
           nodeId: id.nodeId,
@@ -62,17 +60,35 @@ export class PubSubStore extends Model {
     return storeLst;
   }
 
-  public deleteToStore(userSecretId: string, id: INodeId): boolean {
-    const index = this.findIndex(userSecretId, id);
+  public async deleteToStore(
+    userSecretId: string,
+    id: INodeId
+  ): Promise<boolean> {
+    const storeLst = await this.getUserStoreLst(userSecretId);
+    if (!storeLst) return;
+
+    const index = this.findIndex(storeLst, id);
     if (index === -1) return false;
 
-    const user_ids = this.getIds(userSecretId);
-    user_ids.splice(index);
+    const item = storeLst[index];
+    storeLst.remove(item);
+    // const user_ids = this.getIds(userSecretId);
+    // user_ids.splice(index);
     return true;
   }
 
-  public getIds(userSecretId: string): Lst {
-    return this.data[userSecretId];
+  public async getUserStoreLst(
+    userSecretId: string,
+    createIfNotExist: boolean = false
+  ): Promise<void | Lst> {
+    let storeLst = await this._loadUserData(userSecretId);
+
+    if (!storeLst && createIfNotExist) {
+      storeLst = new Lst();
+      this.data.add_attr(userSecretId, new Ptr(storeLst));
+    }
+
+    return storeLst;
   }
 
   public reset() {
@@ -82,24 +98,20 @@ export class PubSubStore extends Model {
     }
   }
 
-  public findIndex(userSecretId: string, id: INodeId): number {
-    const data = this.getIds(userSecretId);
+  public findIndex(userData: Lst, id: INodeId): number {
+    for (let i = 0; i < userData.length; i++) {
+      const element = userData[i];
 
-    if (data) {
-      for (let i = 0; i < data.length; i++) {
-        const element = data[i];
-
-        if (
-          element.contextId?.get() === id.contextId &&
-          element.nodeId?.get() === id.nodeId
-        ) {
-          if (!id.options) return i;
-          else if (
-            element.options &&
-            this._compareOptions(element.options.get(), id.options)
-          )
-            return i;
-        }
+      if (
+        element.contextId?.get() === id.contextId &&
+        element.nodeId?.get() === id.nodeId
+      ) {
+        if (!id.options) return i;
+        else if (
+          element.options &&
+          this._compareOptions(element.options.get(), id.options)
+        )
+          return i;
       }
     }
 
@@ -137,6 +149,18 @@ export class PubSubStore extends Model {
         } else this._deleteModelAttributes(element);
       }
     }
+  }
+
+  private _loadUserData(userSecretId: string): Promise<void | spinal.Lst> {
+    let storePtr = this.data[userSecretId];
+    if (!storePtr) return;
+    return new Promise((resolve, reject) => {
+      if (storePtr instanceof Lst) return resolve(storePtr);
+      if (storePtr instanceof Ptr)
+        return storePtr.load((data) => resolve(data));
+
+      resolve(undefined);
+    });
   }
 }
 

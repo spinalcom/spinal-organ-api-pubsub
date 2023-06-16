@@ -51,12 +51,15 @@ export class SessionStore {
     });
   }
 
-  public getSubscribedData(userId: string): INodeId[] {
-    const data = this.store.getIds(userId);
+  public async getSubscribedData(userId: string): Promise<INodeId[]> {
+    const data = await this.store.getUserStoreLst(userId);
     return (data && data.get()) || [];
   }
 
-  public saveSubscriptionData(userId: string, data: INodeId | INodeId[]): Lst {
+  public saveSubscriptionData(
+    userId: string,
+    data: INodeId | INodeId[]
+  ): Promise<Lst> {
     return this.store.addToStore(userId, data);
   }
 

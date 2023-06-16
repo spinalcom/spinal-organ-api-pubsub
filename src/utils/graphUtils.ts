@@ -241,7 +241,7 @@ class SpinalGraphUtils {
       const _eventName = data.eventName || data.node.getId().get();
 
       //@ts-ignore
-      const sessionId = this.socketHandler._getSessionId(socket);
+      const sessionId = this.socketHandler._getSessionId(data.socket);
       await this.socketHandler.saveSubscriptionData(
         sessionId,
         data.eventName,

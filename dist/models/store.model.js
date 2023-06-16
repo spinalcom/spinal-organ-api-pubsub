@@ -22,6 +22,15 @@
  * with this file. If not, see
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PubSubStore = void 0;
 const spinal_core_connectorjs_1 = require("spinal-core-connectorjs");
@@ -35,37 +44,48 @@ class PubSubStore extends spinal_core_connectorjs_1.Model {
         });
     }
     addToStore(userSecretId, data) {
-        let storeLst = this.data[userSecretId];
-        if (!storeLst) {
-            storeLst = new spinal_core_connectorjs_1.Lst();
-            this.data.add_attr(userSecretId, storeLst);
-        }
-        if (!Array.isArray(data))
-            data = [data];
-        const ids = this.getIds(userSecretId);
-        for (let id of data) {
-            const index = this.findIndex(userSecretId, id);
-            if (index === -1) {
-                storeLst.push({
-                    nodeId: id.nodeId,
-                    contextId: id.contextId,
-                    options: id.options,
-                });
+        return __awaiter(this, void 0, void 0, function* () {
+            const storeLst = yield this.getUserStoreLst(userSecretId, true);
+            if (!Array.isArray(data))
+                data = [data];
+            for (let id of data) {
+                const index = this.findIndex(storeLst, id);
+                if (index === -1) {
+                    storeLst.push({
+                        nodeId: id.nodeId,
+                        contextId: id.contextId,
+                        options: id.options,
+                    });
+                }
+                return;
             }
-            return;
-        }
-        return storeLst;
+            return storeLst;
+        });
     }
     deleteToStore(userSecretId, id) {
-        const index = this.findIndex(userSecretId, id);
-        if (index === -1)
-            return false;
-        const user_ids = this.getIds(userSecretId);
-        user_ids.splice(index);
-        return true;
+        return __awaiter(this, void 0, void 0, function* () {
+            const storeLst = yield this.getUserStoreLst(userSecretId);
+            if (!storeLst)
+                return;
+            const index = this.findIndex(storeLst, id);
+            if (index === -1)
+                return false;
+            const item = storeLst[index];
+            storeLst.remove(item);
+            // const user_ids = this.getIds(userSecretId);
+            // user_ids.splice(index);
+            return true;
+        });
     }
-    getIds(userSecretId) {
-        return this.data[userSecretId];
+    getUserStoreLst(userSecretId, createIfNotExist = false) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let storeLst = yield this._loadUserData(userSecretId);
+            if (!storeLst && createIfNotExist) {
+                storeLst = new spinal_core_connectorjs_1.Lst();
+                this.data.add_attr(userSecretId, new spinal_core_connectorjs_1.Ptr(storeLst));
+            }
+            return storeLst;
+        });
     }
     reset() {
         for (let key in this.data) {
@@ -73,20 +93,17 @@ class PubSubStore extends spinal_core_connectorjs_1.Model {
             this.data.rem_attr(key);
         }
     }
-    findIndex(userSecretId, id) {
+    findIndex(userData, id) {
         var _a, _b;
-        const data = this.getIds(userSecretId);
-        if (data) {
-            for (let i = 0; i < data.length; i++) {
-                const element = data[i];
-                if (((_a = element.contextId) === null || _a === void 0 ? void 0 : _a.get()) === id.contextId &&
-                    ((_b = element.nodeId) === null || _b === void 0 ? void 0 : _b.get()) === id.nodeId) {
-                    if (!id.options)
-                        return i;
-                    else if (element.options &&
-                        this._compareOptions(element.options.get(), id.options))
-                        return i;
-                }
+        for (let i = 0; i < userData.length; i++) {
+            const element = userData[i];
+            if (((_a = element.contextId) === null || _a === void 0 ? void 0 : _a.get()) === id.contextId &&
+                ((_b = element.nodeId) === null || _b === void 0 ? void 0 : _b.get()) === id.nodeId) {
+                if (!id.options)
+                    return i;
+                else if (element.options &&
+                    this._compareOptions(element.options.get(), id.options))
+                    return i;
             }
         }
         return -1;
@@ -118,6 +135,18 @@ class PubSubStore extends spinal_core_connectorjs_1.Model {
                     this._deleteModelAttributes(element);
             }
         }
+    }
+    _loadUserData(userSecretId) {
+        let storePtr = this.data[userSecretId];
+        if (!storePtr)
+            return;
+        return new Promise((resolve, reject) => {
+            if (storePtr instanceof spinal_core_connectorjs_1.Lst)
+                return resolve(storePtr);
+            if (storePtr instanceof spinal_core_connectorjs_1.Ptr)
+                return storePtr.load((data) => resolve(data));
+            resolve(undefined);
+        });
     }
 }
 exports.PubSubStore = PubSubStore;

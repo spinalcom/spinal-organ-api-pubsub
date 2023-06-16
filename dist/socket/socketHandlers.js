@@ -67,7 +67,7 @@ class SocketHandler {
             const sessionId = this._getSessionId(socket);
             socket.emit(constants_1.SESSION_EVENT, sessionId);
             console.log(`${sessionId} is connected`);
-            const old_subscribed_data = sessionStore.getSubscribedData(sessionId);
+            const old_subscribed_data = yield sessionStore.getSubscribedData(sessionId);
             if (old_subscribed_data && old_subscribed_data.length > 0)
                 yield this._subscribe(socket, old_subscribed_data, false);
             this.listenSubscribeEvent(socket);
@@ -137,7 +137,7 @@ class SocketHandler {
             // socket.emit(SUBSCRIBED, result.length == 1 ? result[0] : result);
             const idsToSave = yield this._bindNodes(socket, result, nodes, sessionId);
             if (save)
-                sessionStore.saveSubscriptionData(sessionId, idsToSave);
+                yield sessionStore.saveSubscriptionData(sessionId, idsToSave);
         });
     }
     _checkAndFormatParams(socket, args, oldIds) {
