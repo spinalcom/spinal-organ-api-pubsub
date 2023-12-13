@@ -1,6 +1,6 @@
-import { Server, Socket } from 'socket.io';
-import { INodeId, IAction, ISpinalIOMiddleware } from '../interfaces';
-import { SpinalNode } from 'spinal-model-graph';
+import { Server, Socket } from "socket.io";
+import { INodeId, IAction, ISpinalIOMiddleware } from "../interfaces";
+import { SpinalNode } from "spinal-model-graph";
 export declare class SocketHandler {
     private io;
     private spinalIOMiddleware;

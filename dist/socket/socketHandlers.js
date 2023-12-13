@@ -53,7 +53,7 @@ class SocketHandler {
         if (!data[sessionId])
             data[sessionId] = [];
         data[sessionId].push(subscription_data);
-        data[sessionId] = data[sessionId].filter((v, i, a) => a.findIndex((v2) => ['nodeId', 'contextId'].every((k) => v2[k] === v[k])) === i);
+        data[sessionId] = data[sessionId].filter((v, i, a) => a.findIndex((v2) => ["nodeId", "contextId"].every((k) => v2[k] === v[k])) === i);
         this.subscriptionMap.set(eventName, data);
     }
     getSubscriptionData(eventName, sessionId) {
@@ -63,13 +63,15 @@ class SocketHandler {
         return data[sessionId] || [];
     }
     listenConnectionEvent() {
-        this.io.on('connection', (socket) => __awaiter(this, void 0, void 0, function* () {
+        this.io.on("connection", (socket) => __awaiter(this, void 0, void 0, function* () {
             const sessionId = this._getSessionId(socket);
             socket.emit(constants_1.SESSION_EVENT, sessionId);
             console.log(`${sessionId} is connected`);
-            const old_subscribed_data = yield sessionStore.getSubscribedData(sessionId);
-            if (old_subscribed_data && old_subscribed_data.length > 0)
-                yield this._subscribe(socket, old_subscribed_data, false);
+            // const old_subscribed_data = await sessionStore.getSubscribedData(
+            //   sessionId
+            // );
+            // if (old_subscribed_data && old_subscribed_data.length > 0)
+            //   await this._subscribe(socket, old_subscribed_data, false);
             this.listenSubscribeEvent(socket);
             this.listenUnsubscribeEvent(socket);
             this.listenDisconnectEvent(socket);
@@ -78,14 +80,14 @@ class SocketHandler {
     listenSubscribeEvent(socket) {
         socket.on(constants_1.SUBSCRIBE_EVENT, (...args) => __awaiter(this, void 0, void 0, function* () {
             const sessionId = this._getSessionId(socket);
-            console.log('get subscribe request from', sessionId);
+            console.log("get subscribe request from", sessionId);
             yield this._subscribe(socket, args);
         }));
     }
     listenUnsubscribeEvent(socket) {
         socket.on(constants_1.UNSUBSCRIBE_EVENT, (...args) => __awaiter(this, void 0, void 0, function* () {
-            const sessionId = socket['sessionId'];
-            console.log('received unsubscribe request from', sessionId);
+            const sessionId = socket["sessionId"];
+            console.log("received unsubscribe request from", sessionId);
             const { obj: nodes, ids: idsFormatted } = yield this._checkAndFormatParams(socket, args);
             const result = idsFormatted.map((item) => (0, utils_1.getRoomNameFunc)(item.nodeId, item.contextId, nodes, item.options));
             const idsToRemove = yield this._leaveRoom(socket, result, nodes);
@@ -96,8 +98,8 @@ class SocketHandler {
         }));
     }
     listenDisconnectEvent(socket) {
-        socket.on('disconnect', (reason) => __awaiter(this, void 0, void 0, function* () {
-            console.log(`${socket['sessionId']} is disconnected for reason : ${reason}`);
+        socket.on("disconnect", (reason) => __awaiter(this, void 0, void 0, function* () {
+            console.log(`${socket["sessionId"]} is disconnected for reason : ${reason}`);
         }));
     }
     sendSocketEvent(node, model, eventName, action, socket) {
@@ -113,9 +115,7 @@ class SocketHandler {
                 node: dataFormatted,
             };
             console.log(`(${dataFormatted.info.name} changed) send new data with socket`, data);
-            const sockets = socket
-                ? [socket]
-                : yield this._getAllSocketInRooms(eventName);
+            const sockets = socket ? [socket] : yield this._getAllSocketInRooms(eventName);
             for (const _socket of sockets || []) {
                 const sessionId = this._getSessionId(_socket);
                 const subscription_data = this.getSubscriptionData(eventName, sessionId);
@@ -136,13 +136,12 @@ class SocketHandler {
             }
             // socket.emit(SUBSCRIBED, result.length == 1 ? result[0] : result);
             const idsToSave = yield this._bindNodes(socket, result, nodes, sessionId);
-            if (save)
-                yield sessionStore.saveSubscriptionData(sessionId, idsToSave);
+            // if (save) await sessionStore.saveSubscriptionData(sessionId, idsToSave);
         });
     }
     _checkAndFormatParams(socket, args, oldIds) {
         let options = args[args.length - 1];
-        options = typeof options === 'object' ? options : {};
+        options = typeof options === "object" ? options : {};
         let ids = args.slice(0, args.length - 1).concat(oldIds || []);
         return (0, utils_1.checkAndFormatIds)(socket, this.spinalIOMiddleware, ids, options);
     }
@@ -208,8 +207,8 @@ class SocketHandler {
         });
     }
     _getSessionId(socket) {
-        if (socket['sessionId'])
-            return socket['sessionId'];
+        if (socket["sessionId"])
+            return socket["sessionId"];
         const { auth, header, query } = socket.handshake;
         return (auth === null || auth === void 0 ? void 0 : auth.sessionId) || (header === null || header === void 0 ? void 0 : header.sessionId) || (query === null || query === void 0 ? void 0 : query.sessionId);
     }
