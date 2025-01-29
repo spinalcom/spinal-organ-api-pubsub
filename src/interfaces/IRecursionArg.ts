@@ -22,12 +22,12 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 
-import {SpinalNode, SpinalContext} from 'spinal-env-viewer-graph-service';
-import {INodeId, ISubscribeOptions} from '../';
-import {Socket} from 'socket.io';
+import { SpinalNode, SpinalContext } from 'spinal-env-viewer-graph-service';
+import { INodeId, ISubscribeOptions } from '../';
+import { Socket } from 'socket.io';
 
 export interface IRecursionArg {
-  node: SpinalNode<any>;
+  node: SpinalNode;
   context: SpinalContext<any>;
   options: ISubscribeOptions;
   eventName?: string;

@@ -67,7 +67,6 @@ const lodash = require("lodash");
 const relationToExclude = [spinal_model_timeseries_1.SpinalTimeSeries.relationName];
 class SpinalGraphUtils {
     constructor() {
-        // private nodeBinded: Map<string, { bindTypes: { [key: string]: string }, events: { [key: string]: string } }> = new Map();
         this.nodeBinded = new Map();
         this._listenAddChildEvent();
         this._listenAddChildInContextEvent();
@@ -82,240 +81,129 @@ class SpinalGraphUtils {
     init(socketHandler) {
         return __awaiter(this, void 0, void 0, function* () {
             this.socketHandler = socketHandler;
-            // this.spinalConnection = conn;
-            // const old_graph = graph || SpinalGraphService.getGraph();
-            // if (old_graph) return old_graph;
-            // return new Promise((resolve, reject) => {
-            //     spinalCore.load(conn, config.file.path, async (graph: SpinalGraph) => {
-            //         await SpinalGraphService.setGraph(graph);
-            //         resolve(graph);
-            //     });
-            // });
-        });
-    }
-    /*
-          public async getNode(nodeId: string | number, contextId?: string | number): Promise<SpinalNode<any>> {
-              //@ts-ignore
-              if (!isNaN(nodeId)) {
-                  const node = await this.getNodeWithServerId(<number>nodeId);
-                  //@ts-ignore
-                  if (node && node instanceof SpinalNode) SpinalGraphService._addNode(node);
-      
-                  return node;
-              }
-      
-              return this.getNodeWithStaticId(nodeId.toString(), contextId);
-          }
-      
-          public getNodeWithServerId(server_id: number): Promise<SpinalNode> {
-              return new Promise((resolve) => {
-                  if (typeof FileSystem._objects[server_id] !== "undefined") {
-                      return resolve(FileSystem._objects[server_id] as SpinalNode);
-                  }
-                  this.spinalConnection.load_ptr(server_id, (node) => {
-                      resolve(node as SpinalNode);
-                  })
-              });
-          }
-      
-          public async getNodeWithStaticId(nodeId: string, contextId: string | number): Promise<SpinalNode<any>> {
-              if (nodeId === contextId) {
-                  return this.getContext(nodeId);
-              }
-      
-              const context = await this.getContext(contextId);
-      
-              if (context instanceof SpinalContext) {
-      
-                  const found = await context.findInContext(context, (node, stop) => {
-                      if (node.getId().get() === nodeId) {
-                          // @ts-ignore
-                          SpinalGraphService._addNode(node);
-                          stop()
-                          return true;
-                      }
-      
-                      return false;
-                  })
-      
-                  return Array.isArray(found) ? found[0] : found;
-                  // const queue = [context];
-      
-                  // while (queue.length > 0) {
-                  //     const tail = queue.shift();
-                  //     for await (const node of tail.visitChildrenInContext(context)) {
-                  //         if (node.getId().get() === nodeId) {
-                  //             // @ts-ignore
-                  //             SpinalGraphService._addNode(node);
-                  //             return node;
-                  //         }
-      
-                  //         queue.push(node);
-                  //     }
-                  // }
-      
-              }
-          }
-      
-          async getContext(contextId: number | string): Promise<SpinalContext> {
-              if (typeof contextId === "undefined") return;
-      
-              let node = SpinalGraphService.getRealNode(contextId.toString());
-              if (node) return node;
-              node = FileSystem._objects[contextId];
-              if (node) return node;
-              const graph = SpinalGraphService.getGraph();
-              if (graph) {
-                  const contexts = await graph.getChildren();
-                  return contexts.find(el => {
-                      if (el.getId().get() === contextId || el._server_id == contextId) {
-                          //@ts-ignore
-                          SpinalGraphService._addNode(el);
-                          return true;
-                      }
-                      return false;
-                  })
-              }
-          }
-      */
-    recursionFunction(data, callback) {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                // const model = new Model({ info, element });
-                callback(data);
-                if (data.options.subscribeChildren) {
-                    switch (data.options.subscribeChildScope) {
-                        case interfaces_1.IScope.in_context:
-                            yield this._browseChildInContext(data, callback);
-                            break;
-                        case interfaces_1.IScope.tree_in_context:
-                            yield this.browseContextTree(data, callback);
-                            break;
-                        case interfaces_1.IScope.not_in_context:
-                            yield this.browseChildNotInContext(data, callback);
-                            break;
-                        case interfaces_1.IScope.all:
-                            yield this._browseAllChild(data, callback);
-                            break;
-                        case interfaces_1.IScope.tree_not_in_context:
-                            yield this.browseTreeNotInContext(data, callback);
-                            break;
-                    }
-                }
-            }
-            catch (error) {
-                console.error(error);
-                const err_message = error.message;
-                console.error(err_message);
-            }
         });
     }
     bindNode(data) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                // const model = new Model({ info, element });
-                const _eventName = data.eventName || data.node.getId().get();
-                //@ts-ignore
-                const sessionId = this.socketHandler._getSessionId(data.socket);
-                yield this.socketHandler.saveSubscriptionData(sessionId, data.eventName, data.subscription_data);
-                if (data.socket && data.eventName) {
-                    data.socket.emit(constants_1.SUBSCRIBED, {
-                        error: null,
-                        eventNames: [_eventName],
-                        options: data.options,
-                        status: constants_1.OK_STATUS,
-                    });
-                    data.socket.join(_eventName);
+                // const _eventName = data.eventName || data.node.getId().get();
+                const _eventName = data.node.getId().get();
+                // save session data to the database
+                // const sessionId = this.socketHandler._getSessionId(data.socket);
+                // await this.socketHandler.saveSubscriptionData(sessionId, data.eventName, data.subscription_data);
+                // await this.socketHandler.saveSubscriptionData(sessionId, _eventName, data.subscription_data);
+                // end save session data
+                if (data.socket && _eventName) {
+                    // const subscription_data =
+                    // data.socket.join(_eventName);
+                    this.socketHandler._joinRoom(data.socket, data.subscription_data, [_eventName]);
+                    data.socket.emit(constants_1.SUBSCRIBED, { error: null, eventNames: [_eventName], options: data.options, status: constants_1.OK_STATUS });
                 }
-                yield this._bindInfoAndElement(data.node, data.context, _eventName, data.options, data.socket);
-                // if (options.subscribeChildren) {
-                //   switch (options.subscribeChildScope) {
-                //     case IScope.in_context:
-                //       await this._browseChildInContext(
-                //         node,
-                //         context,
-                //         socket,
-                //         subscription_data
-                //       );
-                //       break;
-                //     case IScope.tree_in_context:
-                //       await this.browseContextTree(
-                //         node,
-                //         context,
-                //         socket,
-                //         subscription_data
-                //       );
-                //       break;
-                //     case IScope.not_in_context:
-                //       await this.browseChildNotInContext(node, socket, subscription_data);
-                //       break;
-                //     case IScope.all:
-                //       await this._browseAllChild(node, socket, subscription_data);
-                //       break;
-                //     case IScope.tree_not_in_context:
-                //       await this.browseTreeNotInContext(node, socket, subscription_data);
-                //       break;
-                //   }
-                // }
+                // await this._bindInfoAndElement(data.node, data.context, _eventName, data.options, data.socket);
+                yield this._bindInfoAndElement(data.node, data.context, _eventName, data.options);
             }
             catch (error) {
-                console.error(error);
                 const err_message = error.message;
                 console.error(err_message);
             }
         });
     }
-    browseContextTree(data, callback) {
-        const eventName = `${data.context.getId().get()}:${data.node
-            .getId()
-            .get()}`;
+    bindNodeChildren(data) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                yield this.bindNode(data);
+                switch (data.options.subscribeChildScope) {
+                    case interfaces_1.IScope.in_context:
+                        yield this._browseChildInContext(data);
+                        break;
+                    case interfaces_1.IScope.tree_in_context:
+                        yield this.browseContextTree(data);
+                        break;
+                    case interfaces_1.IScope.not_in_context:
+                        yield this.browseChildNotInContext(data);
+                        break;
+                    case interfaces_1.IScope.all:
+                        yield this._browseAllChild(data);
+                        break;
+                    case interfaces_1.IScope.tree_not_in_context:
+                        yield this.browseTreeNotInContext(data);
+                        break;
+                }
+            }
+            catch (error) {
+                const err_message = error.message;
+                console.error(err_message);
+            }
+        });
+    }
+    browseContextTree(data) {
+        // const eventName = `${data.context.getId().get()}:${data.node
+        //   .getId()
+        //   .get()}`;
         data.node.findInContext(data.context, (node) => {
             this._activeEventSender(node);
-            const _data = {
-                node,
-                context: data.context,
-                options: {},
-                socket: data.socket,
-                subscription_data: data.subscription_data,
-            };
-            this.recursionFunction(_data, callback);
+            const _data = { node, context: data.context, options: {}, socket: data.socket, subscription_data: data.subscription_data };
+            this.bindNodeChildren(_data);
             return false;
         });
     }
-    browseChildNotInContext(data, callback) {
+    browseChildNotInContext(data) {
         return __awaiter(this, void 0, void 0, function* () {
             this._activeEventSender(data.node);
             const eventName = data.node.getId().get();
             const relations = this._getRelationNameNotInContext(data.node);
-            const children = yield data.node.getChildren(relations.filter((el) => relationToExclude.indexOf(el) !== -1));
-            children.forEach((child) => {
-                const childData = {
-                    node: child,
-                    context: null,
-                    options: {},
-                    eventName,
-                    socket: data.socket,
-                    subscription_data: data.subscription_data,
-                };
-                this.recursionFunction(childData, callback);
-            });
+            const relationFiltered = relations.filter((el) => relationToExclude.indexOf(el) !== -1);
+            const children = yield data.node.getChildren(relationFiltered);
+            this._bindNodeChildrenLoop(children, eventName, data);
+            // children.forEach((child) => {
+            //   const childData = {
+            //     node: child,
+            //     context: null,
+            //     options: {},
+            //     eventName,
+            //     socket: data.socket,
+            //     subscription_data: data.subscription_data,
+            //   };
+            //   this.bindNodeChildren(childData, callback);
+            // });
         });
     }
-    browseTreeNotInContext(data, callback) {
+    browseTreeNotInContext(data) {
         return __awaiter(this, void 0, void 0, function* () {
             const nodes = yield this._getTreeNotInContext(data.node);
+            const temp = Object.assign({ context: null }, data);
             for (const n of nodes) {
                 const eventName = n.getId().get();
-                const childData = {
-                    node: n,
-                    context: null,
-                    options: {},
-                    eventName,
-                    socket: data.socket,
-                    subscription_data: data.subscription_data,
-                };
-                this.recursionFunction(childData, callback);
+                // const childData = {
+                //   node: n,
+                //   context: null,
+                //   options: {},
+                //   eventName,
+                //   socket: data.socket,
+                //   subscription_data: data.subscription_data,
+                // };
+                // this.bindNodeChildren(childData, callback);
+                this._bindNodeChildrenLoop([n], eventName, temp);
             }
+        });
+    }
+    _browseAllChild(data) {
+        return __awaiter(this, void 0, void 0, function* () {
+            this._activeEventSender(data.node);
+            const eventName = data.node.getId().get();
+            const relationNames = this._getRelationNames(data.node);
+            const children = yield data.node.getChildren(relationNames.filter((el) => relationToExclude.indexOf(el) !== -1));
+            const temp = Object.assign({ context: null }, data);
+            this._bindNodeChildrenLoop(children, eventName, temp);
+        });
+    }
+    _browseChildInContext(data) {
+        return __awaiter(this, void 0, void 0, function* () {
+            this._activeEventSender(data.node);
+            // const eventName = `${data.context.getId().get()}:${data.node.getId().get()}`;
+            const eventName = data.node.getId().get();
+            const children = yield data.node.getChildrenInContext(data.context);
+            this._bindNodeChildrenLoop(children, eventName, data);
         });
     }
     rebindAllNodes() {
@@ -331,6 +219,19 @@ class SpinalGraphUtils {
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////
     //                                      PRIVATE                                                          //
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+    _bindNodeChildrenLoop(children, eventName, data) {
+        for (const child of children) {
+            const childData = {
+                node: child,
+                context: data.context,
+                options: {},
+                eventName,
+                socket: data.socket,
+                subscription_data: data.subscription_data,
+            };
+            this.bindNodeChildren(childData);
+        }
+    }
     _getTreeNotInContext(start) {
         return __awaiter(this, void 0, void 0, function* () {
             const nodes = [];
@@ -361,69 +262,6 @@ class SpinalGraphUtils {
             }
         });
     }
-    _unbindAllNodes() {
-        this.nodeBinded.forEach((value, key) => {
-            this._unbindNode(key);
-        });
-    }
-    _unbindNode(nodeId, eventNames) {
-        const data = this.nodeBinded.get(nodeId);
-        if (!data)
-            return;
-        let events = eventNames || Object.keys(data);
-        if (!Array.isArray(events))
-            events = [events];
-        events.forEach((name) => {
-            const bindProcesses = data[name].bindProcesses || [];
-            while (bindProcesses.length) {
-                const process = bindProcesses.pop();
-                this._unbindBindProcess(process);
-            }
-        });
-    }
-    _unbindBindProcess(process) {
-        const models = process._models;
-        return models.forEach((el) => el.unbind(process));
-    }
-    _browseAllChild(data, callback) {
-        return __awaiter(this, void 0, void 0, function* () {
-            this._activeEventSender(data.node);
-            const eventName = data.node.getId().get();
-            const relationNames = this._getRelationNames(data.node);
-            const children = yield data.node.getChildren(relationNames.filter((el) => relationToExclude.indexOf(el) !== -1));
-            children.forEach((child) => {
-                const childData = {
-                    node: child,
-                    context: null,
-                    options: {},
-                    eventName,
-                    socket: data.socket,
-                    subscription_data: data.subscription_data,
-                };
-                this.recursionFunction(childData, callback);
-            });
-        });
-    }
-    _browseChildInContext(data, callback) {
-        return __awaiter(this, void 0, void 0, function* () {
-            this._activeEventSender(data.node);
-            const eventName = `${data.context.getId().get()}:${data.node
-                .getId()
-                .get()}`;
-            const children = yield data.node.getChildrenInContext(data.context);
-            children.forEach((child) => {
-                const childData = {
-                    node: child,
-                    context: data.context,
-                    options: {},
-                    eventName,
-                    socket: data.socket,
-                    subscription_data: data.subscription_data,
-                };
-                this.recursionFunction(childData, callback);
-            });
-        });
-    }
     _getRelationNameNotInContext(node) {
         const relationKeys = node.children.keys();
         const t = relationKeys.map((key) => {
@@ -444,27 +282,26 @@ class SpinalGraphUtils {
         });
         return lodash.flattenDeep(t);
     }
-    _bindInfoAndElement(node, context, eventName, options = {}, socket) {
+    _bindInfoAndElement(node, context, eventName, options = {}) {
         var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             const nodeId = node.getId().get();
             let info = node.info;
             let element = yield node.getElement(true);
+            // callback to send the socket event
             const callbackDebounce = lodash.debounce(() => __awaiter(this, void 0, void 0, function* () {
-                console.log(`(${info.name.get()} changed) spinalCore bind execution`);
-                yield this.socketHandler.sendSocketEvent(node, {
-                    info: info.get(),
-                    element: element === null || element === void 0 ? void 0 : element.get(),
-                }, eventName);
+                console.log(`[${info.name.get()}] change has been detected in spinalCore`);
+                yield this.socketHandler.sendSocketEvent(node, { dynamicId: node._server_id, info: info.get(), element: element === null || element === void 0 ? void 0 : element.get(), }, eventName);
             }), 1000);
             const _temp = this.nodeBinded.get(nodeId);
+            // check if the node is already binded
             if (_temp && ((_b = (_a = _temp[eventName]) === null || _a === void 0 ? void 0 : _a.bindProcesses) === null || _b === void 0 ? void 0 : _b.length) > 0) {
                 callbackDebounce();
                 return;
             }
-            const processes = [];
+            // bind info and element
             let infoProcess = info.bind(callbackDebounce, true);
-            processes.push(infoProcess);
+            const processes = [infoProcess];
             if (element) {
                 const elementProcess = element.bind(callbackDebounce, true);
                 processes.push(elementProcess);
@@ -497,11 +334,7 @@ class SpinalGraphUtils {
         spinal_env_viewer_plugin_event_emitter_1.spinalEventEmitter.on(spinal_model_graph_1.ADD_CHILD_EVENT, ({ nodeId, childId }) => __awaiter(this, void 0, void 0, function* () {
             const node = yield this._callbackListen(nodeId, childId, undefined, nodeId, [interfaces_1.IScope.all, interfaces_1.IScope.not_in_context]);
             if (node instanceof spinal_env_viewer_graph_service_1.SpinalNode) {
-                let action = {
-                    name: constants_1.EVENT_NAMES.addChild,
-                    parentId: nodeId,
-                    nodeId: childId,
-                };
+                let action = { name: constants_1.EVENT_NAMES.addChild, parentId: nodeId, nodeId: childId };
                 yield this.socketHandler.sendSocketEvent(node, undefined, nodeId, action);
             }
         }));
@@ -511,12 +344,7 @@ class SpinalGraphUtils {
             const node = yield this._callbackListen(nodeId, childId, contextId, nodeId, [interfaces_1.IScope.all, interfaces_1.IScope.not_in_context]);
             if (node instanceof spinal_env_viewer_graph_service_1.SpinalNode) {
                 const eventName = `${contextId}:${nodeId}`;
-                let action = {
-                    name: constants_1.EVENT_NAMES.addChildInContext,
-                    parentId: nodeId,
-                    nodeId: childId,
-                    contextId,
-                };
+                let action = { name: constants_1.EVENT_NAMES.addChildInContext, parentId: nodeId, nodeId: childId, contextId };
                 yield this.socketHandler.sendSocketEvent(node, undefined, eventName, action);
             }
         }));
@@ -524,31 +352,23 @@ class SpinalGraphUtils {
     _listenRemoveChildEvent() {
         spinal_env_viewer_plugin_event_emitter_1.spinalEventEmitter.on(spinal_model_graph_1.REMOVE_CHILD_EVENT, ({ nodeId, childId }) => __awaiter(this, void 0, void 0, function* () {
             const data = this.nodeBinded.get(nodeId);
-            if (data) {
-                const node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(nodeId);
-                const event = nodeId;
-                const action = {
-                    name: constants_1.EVENT_NAMES.childRemoved,
-                    parentId: nodeId,
-                    nodeId: childId,
-                };
-                yield this.socketHandler.sendSocketEvent(node, undefined, event, action);
-            }
+            if (!data)
+                return;
+            const node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(nodeId);
+            const event = nodeId;
+            const action = { name: constants_1.EVENT_NAMES.childRemoved, parentId: nodeId, nodeId: childId };
+            yield this.socketHandler.sendSocketEvent(node, undefined, event, action);
         }));
     }
     _listenAddChildrenEvent() {
         spinal_env_viewer_plugin_event_emitter_1.spinalEventEmitter.on(spinal_model_graph_1.REMOVE_CHILDREN_EVENT, ({ nodeId, childrenIds }) => __awaiter(this, void 0, void 0, function* () {
             const data = this.nodeBinded.get(nodeId);
-            if (data) {
-                const node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(nodeId);
-                const event = nodeId;
-                const action = {
-                    name: constants_1.EVENT_NAMES.childrenRemoved,
-                    parentId: nodeId,
-                    nodeIds: childrenIds,
-                };
-                yield this.socketHandler.sendSocketEvent(node, undefined, event, action);
-            }
+            if (!data)
+                return;
+            const node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(nodeId);
+            const event = nodeId;
+            const action = { name: constants_1.EVENT_NAMES.childrenRemoved, parentId: nodeId, nodeIds: childrenIds };
+            yield this.socketHandler.sendSocketEvent(node, undefined, event, action);
         }));
     }
     _activeEventSender(node) {
@@ -573,22 +393,43 @@ class SpinalGraphUtils {
     _callbackListen(nodeId, childId, contextId, eventName, bindTypes) {
         return __awaiter(this, void 0, void 0, function* () {
             const data = this.nodeBinded.get(nodeId);
-            let binded = false;
-            if (data) {
-                const _bindTypes = data.bindTypes;
-                const found = bindTypes.find((el) => _bindTypes[el]);
-                if (found) {
-                    const node = yield this._findNode(nodeId, childId);
-                    if (node instanceof spinal_env_viewer_graph_service_1.SpinalNode) {
-                        const context = contextId
-                            ? spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(contextId)
-                            : undefined;
-                        this.bindNode({ node, context, options: {}, eventName });
-                        return node;
-                    }
-                }
+            if (!data)
+                return;
+            const _bindTypes = data.bindTypes;
+            const found = bindTypes.find((el) => _bindTypes[el]);
+            if (!found)
+                return;
+            const node = yield this._findNode(nodeId, childId);
+            if (!(node instanceof spinal_env_viewer_graph_service_1.SpinalNode))
+                return;
+            const context = contextId && spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(contextId);
+            this.bindNode({ node, context, options: {}, eventName });
+            return node;
+        });
+    }
+    _unbindAllNodes() {
+        this.nodeBinded.forEach((value, key) => {
+            this._unbindNode(key);
+        });
+    }
+    _unbindNode(nodeId, eventNames) {
+        const data = this.nodeBinded.get(nodeId);
+        if (!data)
+            return;
+        let events = eventNames || Object.keys(data);
+        if (!Array.isArray(events))
+            events = [events];
+        events.forEach((name) => {
+            const bindProcesses = data[name].bindProcesses || [];
+            while (bindProcesses.length) {
+                const process = bindProcesses.pop();
+                this._unbindBindProcess(process);
             }
         });
+    }
+    _unbindBindProcess(process) {
+        const models = process._models;
+        return models.forEach((el) => el.unbind(process));
     }
 }
 exports.spinalGraphUtils = SpinalGraphUtils.getInstance();

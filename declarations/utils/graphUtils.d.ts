@@ -8,19 +8,17 @@ declare class SpinalGraphUtils {
     private constructor();
     static getInstance(): SpinalGraphUtils;
     init(socketHandler: SocketHandler): Promise<void>;
-    recursionFunction(data: IRecursionArg, callback: Function): Promise<void>;
     bindNode(data: IRecursionArg): Promise<void>;
-    browseContextTree(data: IRecursionArg, callback: Function): void;
-    browseChildNotInContext(data: IRecursionArg, callback: Function): Promise<void>;
-    browseTreeNotInContext(data: IRecursionArg, callback: Function): Promise<void>;
-    rebindAllNodes(): Promise<void>;
-    private _getTreeNotInContext;
-    private _rebindNode;
-    private _unbindAllNodes;
-    private _unbindNode;
-    private _unbindBindProcess;
+    bindNodeChildren(data: IRecursionArg): Promise<void>;
+    browseContextTree(data: IRecursionArg): void;
+    browseChildNotInContext(data: IRecursionArg): Promise<void>;
+    browseTreeNotInContext(data: IRecursionArg): Promise<void>;
     private _browseAllChild;
     private _browseChildInContext;
+    rebindAllNodes(): Promise<void>;
+    private _bindNodeChildrenLoop;
+    private _getTreeNotInContext;
+    private _rebindNode;
     private _getRelationNameNotInContext;
     private _getRelationNames;
     private _bindInfoAndElement;
@@ -32,6 +30,9 @@ declare class SpinalGraphUtils {
     private _activeEventSender;
     private _findNode;
     private _callbackListen;
+    private _unbindAllNodes;
+    private _unbindNode;
+    private _unbindBindProcess;
 }
 export declare const spinalGraphUtils: SpinalGraphUtils;
 export {};

@@ -22,11 +22,11 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 
-import {FileSystem, spinalCore} from 'spinal-core-connectorjs';
-import {ISpinalIOMiddleware, IConfig} from './interfaces';
-import {config} from './config';
-import {SpinalContext, SpinalGraph, SpinalNode} from 'spinal-model-graph';
-import {SpinalGraphService} from 'spinal-env-viewer-graph-service';
+import { FileSystem, spinalCore } from 'spinal-core-connectorjs';
+import { ISpinalIOMiddleware, IConfig } from './interfaces';
+import { config } from './config';
+import { SpinalContext, SpinalGraph, SpinalNode } from 'spinal-model-graph';
+import { SpinalGraphService } from 'spinal-env-viewer-graph-service';
 
 export class Middleware implements ISpinalIOMiddleware {
   config: IConfig = <any>config;
@@ -38,15 +38,10 @@ export class Middleware implements ISpinalIOMiddleware {
     if (argConfig) this.config = argConfig;
     if (connect) this.conn = connect;
     else {
-      const protocol = this.config.spinalConnector.protocol
-        ? this.config.spinalConnector.protocol
-        : 'http';
-      const host =
-        this.config.spinalConnector.host +
-        (this.config.spinalConnector.port
-          ? `:${this.config.spinalConnector.port}`
-          : '');
+      const protocol = this.config.spinalConnector.protocol ? this.config.spinalConnector.protocol : 'http';
+      const host = this.config.spinalConnector.host + (this.config.spinalConnector.port ? `:${this.config.spinalConnector.port}` : '');
       const login = `${this.config.spinalConnector.user}:${this.config.spinalConnector.password}`;
+
       const connect_opt = `${protocol}://${login}@${host}/`;
 
       this.conn = spinalCore.connect(connect_opt);
@@ -104,7 +99,7 @@ export class Middleware implements ISpinalIOMiddleware {
   public async getNodeWithStaticId(
     nodeId: string,
     contextId: string | number
-  ): Promise<SpinalNode<any>> {
+  ): Promise<SpinalNode> {
     if (nodeId === contextId) {
       return this.getContext(nodeId);
     }

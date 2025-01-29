@@ -10,7 +10,7 @@ export declare class Middleware implements ISpinalIOMiddleware {
     private geneGraph;
     getNode(nodeId: string | number, contextId?: string | number): Promise<SpinalNode>;
     getNodeWithServerId(server_id: number): Promise<SpinalNode>;
-    getNodeWithStaticId(nodeId: string, contextId: string | number): Promise<SpinalNode<any>>;
+    getNodeWithStaticId(nodeId: string, contextId: string | number): Promise<SpinalNode>;
     getGraph(): Promise<SpinalGraph>;
     getProfileGraph(): Promise<SpinalGraph>;
     getContext(contextId: number | string): Promise<SpinalContext>;

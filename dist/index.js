@@ -55,15 +55,28 @@ const socketHandlers_1 = require("./socket/socketHandlers");
 const Middleware_1 = require("./Middleware");
 Object.defineProperty(exports, "Middleware", { enumerable: true, get: function () { return Middleware_1.Middleware; } });
 const store_1 = require("./store");
+const redis_adapter_1 = require("@socket.io/redis-adapter");
+const ioredis_1 = require("ioredis");
 function runSocketServer(server, spinalIOMiddleware) {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
         let app = server || ((_a = config_1.config.server) === null || _a === void 0 ? void 0 : _a.port) || 8888;
-        const io = new socket_io_1.Server(app, { pingTimeout: 30000, pingInterval: 25000 });
         spinalIOMiddleware = spinalIOMiddleware || new Middleware_1.Middleware();
+        let port = !isNaN(app) ? app : app.address().port;
+        // let redisPort = await getPortValid(parseInt(port) + 1);
+        // const redisClient = createClient({ host: 'localhost', port: redisPort });
+        const pubClient = new ioredis_1.Redis();
+        const subClient = pubClient.duplicate();
+        pubClient.on("error", (err) => {
+            console.log(err);
+        });
+        // redisClient.on('error', err => console.log('Redis Client Error', err));
+        const io = new socket_io_1.Server(app, { adapter: (0, redis_adapter_1.createAdapter)(pubClient, subClient), pingTimeout: 30000, pingInterval: 25000 });
+        // io.adapter(createAdapter(redisClient, subClient));
         const socketHandler = new socketHandlers_1.SocketHandler(io, spinalIOMiddleware);
         yield utils_1.spinalGraphUtils.init(socketHandler);
         yield store_1.SessionStore.getInstance().init(spinalIOMiddleware.conn);
+        // return Promise.all([redisClient.connect(), subClient.connect()]).then(() => {
         console.log('socket server is running');
         return io;
     });

@@ -60,12 +60,13 @@ class SessionStore {
         });
     }
     saveSubscriptionData(userId, data) {
-        return this.store.addToStore(userId, data);
+        // return this.store.addToStore(userId, data); // uncomment this line to save data
+        return;
     }
     deleteSubscriptionData(userId, data) {
         if (!Array.isArray(data))
             data = [data];
-        return data.map((id) => this.store.deleteToStore(userId, id));
+        // return data.map((id) => this.store.deleteToStore(userId, id)); // uncomment this line to delete data
     }
     _loadOrMakeConfigFile(connect) {
         return new Promise((resolve, reject) => {

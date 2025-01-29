@@ -57,13 +57,8 @@ class Middleware {
         if (connect)
             this.conn = connect;
         else {
-            const protocol = this.config.spinalConnector.protocol
-                ? this.config.spinalConnector.protocol
-                : 'http';
-            const host = this.config.spinalConnector.host +
-                (this.config.spinalConnector.port
-                    ? `:${this.config.spinalConnector.port}`
-                    : '');
+            const protocol = this.config.spinalConnector.protocol ? this.config.spinalConnector.protocol : 'http';
+            const host = this.config.spinalConnector.host + (this.config.spinalConnector.port ? `:${this.config.spinalConnector.port}` : '');
             const login = `${this.config.spinalConnector.user}:${this.config.spinalConnector.password}`;
             const connect_opt = `${protocol}://${login}@${host}/`;
             this.conn = spinal_core_connectorjs_1.spinalCore.connect(connect_opt);

@@ -1,6 +1,7 @@
 import { Server, Socket } from "socket.io";
 import { INodeId, IAction, ISpinalIOMiddleware } from "../interfaces";
 import { SpinalNode } from "spinal-model-graph";
+import { UpdateDataType } from "../types";
 export declare class SocketHandler {
     private io;
     private spinalIOMiddleware;
@@ -14,19 +15,13 @@ export declare class SocketHandler {
     listenSubscribeEvent(socket: Socket): void;
     listenUnsubscribeEvent(socket: Socket): void;
     listenDisconnectEvent(socket: Socket): void;
-    sendSocketEvent(node: SpinalNode, model: {
-        info: {
-            [key: string]: any;
-        };
-        element: {
-            [key: string]: any;
-        };
-    }, eventName: string, action?: IAction, socket?: Socket): Promise<void>;
+    sendSocketEvent(node: SpinalNode, model: UpdateDataType, eventName: string, action?: IAction, socket?: Socket): Promise<void>;
     private _subscribe;
-    private _checkAndFormatParams;
-    private _bindNodes;
+    private _launchNodeBinding;
+    _joinRoom(socket: Socket, subscription_data: INodeId, eventNames: string[]): string[];
     private _leaveRoom;
-    private _getSessionId;
+    private _checkAndFormatParams;
+    _getSessionId(socket: Socket): string;
     private _setSessionMiddleware;
     private _getAllSocketInRooms;
 }

@@ -22,8 +22,8 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 
-import {SpinalContext, SpinalNode} from 'spinal-model-graph';
-import {ISubscribeOptions} from './ISubscribeOptions';
+import { SpinalContext, SpinalNode } from 'spinal-model-graph';
+import { ISubscribeOptions } from './ISubscribeOptions';
 
 export interface INodeId {
   nodeId: string;
@@ -35,7 +35,7 @@ export interface INodeData {
   nodeId: string | number;
   contextId?: string | number;
   options?: ISubscribeOptions;
-  node?: SpinalNode<any>;
+  node?: SpinalNode;
   contextNode?: SpinalContext<any>;
   subscription_data?: INodeId;
   error?: string;

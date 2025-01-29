@@ -22,10 +22,10 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 
-import {Lst, spinalCore} from 'spinal-core-connectorjs';
+import { Lst, spinalCore } from 'spinal-core-connectorjs';
 import * as path from 'path';
-import {PubSubStore} from '../models';
-import {INodeId} from '../interfaces';
+import { PubSubStore } from '../models';
+import { INodeId } from '../interfaces';
 import * as cron from 'node-cron';
 
 const storeName = 'pubsubStore.db';
@@ -34,7 +34,7 @@ export class SessionStore {
   private static instance: SessionStore;
   private store: PubSubStore;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): SessionStore {
     if (!this.instance) this.instance = new SessionStore();
@@ -56,17 +56,15 @@ export class SessionStore {
     return (data && data.get()) || [];
   }
 
-  public saveSubscriptionData(
-    userId: string,
-    data: INodeId | INodeId[]
-  ): Promise<Lst> {
-    return this.store.addToStore(userId, data);
+  public saveSubscriptionData(userId: string, data: INodeId | INodeId[]): Promise<Lst> {
+    // return this.store.addToStore(userId, data); // uncomment this line to save data
+    return;
   }
 
   public deleteSubscriptionData(userId: string, data: INodeId | INodeId[]) {
     if (!Array.isArray(data)) data = [data];
 
-    return data.map((id) => this.store.deleteToStore(userId, id));
+    // return data.map((id) => this.store.deleteToStore(userId, id)); // uncomment this line to delete data
   }
 
   private _loadOrMakeConfigFile(
@@ -90,7 +88,7 @@ export class SessionStore {
     fileName: string
   ): PubSubStore {
     const store = new PubSubStore();
-    directory.force_add_file(fileName, store, {model_type: 'store'});
+    directory.force_add_file(fileName, store, { model_type: 'store' });
     return store;
   }
 

@@ -32,11 +32,37 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports._formatNode = exports.getRoomNameFunc = exports.checkAndFormatIds = void 0;
+exports._formatNode = exports.getRoomNameFunc = exports.checkAndFormatIds = exports.getPortValid = void 0;
 const interfaces_1 = require("../interfaces");
 const constants_1 = require("../constants");
 const spinal_model_graph_1 = require("spinal-model-graph");
 const lodash = require("lodash");
+const net = require('net');
+function getPortValid(port = 1) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let validPort = port;
+        let success = false;
+        do {
+            success = yield checkPortAvailability(validPort);
+            if (!success) {
+                validPort++;
+            }
+        } while (!success);
+        return validPort;
+    });
+}
+exports.getPortValid = getPortValid;
+function checkPortAvailability(port) {
+    return new Promise((resolve) => {
+        const server = net.createServer();
+        server.once('error', (err) => resolve(false));
+        server.once('listening', () => {
+            server.close();
+            resolve(true); // Le port est disponible
+        });
+        server.listen(port);
+    });
+}
 function checkAndFormatIds(socket, spinalIOMiddleware, nodeIds, options) {
     return __awaiter(this, void 0, void 0, function* () {
         const idsFormatted = _structureDataFunc(nodeIds, options);
@@ -46,63 +72,26 @@ function checkAndFormatIds(socket, spinalIOMiddleware, nodeIds, options) {
 }
 exports.checkAndFormatIds = checkAndFormatIds;
 function getRoomNameFunc(nodeId, contextId, obj, options) {
-    var _a, _b;
-    const node = (_a = obj[nodeId]) === null || _a === void 0 ? void 0 : _a.node;
-    const context = (_b = obj[nodeId]) === null || _b === void 0 ? void 0 : _b.contextNode;
-    let error = obj[nodeId].error;
-    if (error) {
+    const { node, contextNode: context, error: _error } = obj[nodeId];
+    let error = _error || _checkError({ nodeId, contextId }, node, context, options);
+    if (error)
         return { error, nodeId, status: constants_1.NOK_STATUS };
-    }
-    if (!node || !(node instanceof spinal_model_graph_1.SpinalNode)) {
-        error = !node
-            ? `${nodeId} is not found`
-            : `${nodeId} must be a spinalNode, SpinalContext`;
-        // error = new Error(message);
-        return { error, nodeId, status: constants_1.NOK_STATUS };
-    }
-    if (!context || !(context instanceof spinal_model_graph_1.SpinalContext)) {
-        error = !context
-            ? `the context ${contextId} is not found`
-            : `${contextId} must be a SpinalContext`;
-        // error = new Error(message);
-        return { error, nodeId, status: constants_1.NOK_STATUS };
-    }
     let roomId = node.getId().get();
-    let eventNames = [roomId];
-    if (options.subscribeChildren &&
-        [interfaces_1.IScope.in_context, interfaces_1.IScope.tree_in_context].indexOf(options.subscribeChildScope) !== -1) {
-        if (!context || !(context instanceof spinal_model_graph_1.SpinalContext)) {
-            let contextError;
-            if (!contextId)
-                contextError = `you did not specify the context id`;
-            else
-                contextError = `${contextId} is not a valid context id`;
-            error = `You try to subscribe somme data in context but, ${contextError}`;
-            return { error, nodeId, status: constants_1.NOK_STATUS };
-        }
-        const namespaceId = context.getId().get();
-        eventNames.push(`${namespaceId}:${roomId}`);
-    }
-    return {
-        error,
-        nodeId,
-        status: constants_1.OK_STATUS,
-        eventNames,
-        options,
-    };
+    return { error, nodeId, status: constants_1.OK_STATUS, eventNames: [roomId], options };
 }
 exports.getRoomNameFunc = getRoomNameFunc;
 function _formatNode(node, model) {
     return __awaiter(this, void 0, void 0, function* () {
         if (model) {
             return {
+                dynamicId: (model === null || model === void 0 ? void 0 : model.dynamicId) || node._server_id,
                 info: model.info,
                 element: model.element,
             };
         }
         const info = node.info;
         const element = yield node.getElement(true);
-        return { info: info.get(), element: element && element.get() };
+        return { dynamicId: node._server_id, info: info.get(), element: element && element.get() };
     });
 }
 exports._formatNode = _formatNode;
@@ -111,12 +100,9 @@ exports._formatNode = _formatNode;
 /////////////////////////////////////////////////////////
 function _structureDataFunc(ids, options) {
     ids = lodash.flattenDeep(ids);
-    // let options = args[args.length - 1];
-    // options = typeof options === "object" ? options : {};
     return ids.map((id) => (Object.assign(Object.assign({}, _formatId(id)), { options: _getOptions(id) || options })));
 }
 function _getNodes(socket, spinalMiddleware, ids) {
-    // const obj = {};
     const promises = ids.map(({ nodeId, contextId, options }) => __awaiter(this, void 0, void 0, function* () {
         const res = {
             subscription_data: { nodeId, contextId },
@@ -160,33 +146,38 @@ function _getOptions(id) {
         return id.options;
 }
 function _removeDuplicate(nodes) {
-    // const idsToSave = [];
     const obj = {};
-    const data = nodes.reduce((arr, item) => {
-        const found = arr.find(({ node, contextNode, options }) => {
-            var _a, _b;
-            return ((node === null || node === void 0 ? void 0 : node._server_id) === ((_a = item.node) === null || _a === void 0 ? void 0 : _a._server_id) &&
-                (contextNode === null || contextNode === void 0 ? void 0 : contextNode._server_id) === ((_b = item.contextNode) === null || _b === void 0 ? void 0 : _b._server_id) &&
-                options.subscribeChildScope === item.options.subscribeChildScope &&
-                options.subscribeChildren === item.options.subscribeChildren);
-        });
-        if (!found) {
-            obj[item.nodeId] = item;
-            // if (item.node && item.contextNode) {
-            //     idsToSave.push({
-            //         nodeId: item.node.getId().get(),
-            //         contextId: item.contextNode.getId().get(),
-            //         options: item.options
-            //     })
-            // }
-            return arr.concat([item]);
+    const data = nodes.reduce((res, item) => {
+        const { node, contextNode, options, nodeId } = item;
+        const id = `${node === null || node === void 0 ? void 0 : node._server_id}_${contextNode === null || contextNode === void 0 ? void 0 : contextNode._server_id}_${options.subscribeChildScope}_${options.subscribeChildren}`;
+        if (!res[id]) {
+            obj[nodeId] = item;
+            res[id] = item;
         }
-        return arr;
-    }, []);
-    return { obj, ids: data };
+        return res;
+    }, {});
+    const ids = Object.values(data);
+    return { obj, ids: Array.from(ids) };
 }
-// function _getNodeToSave(nodes: INodeData[]): INodeId[] {
-//     return nodes.reduce((arr,item) => {
-//     },[])
-// }
+function _checkError(ids, node, context, options) {
+    if (!node || !(node instanceof spinal_model_graph_1.SpinalNode)) {
+        return !node ? `${ids.nodeId} is not found` : `${ids.nodeId} must be a spinalNode, SpinalContext`;
+    }
+    if (!context || !(context instanceof spinal_model_graph_1.SpinalContext)) {
+        return !context ? `the context ${ids.contextId} is not found` : `${ids.contextId} must be a SpinalContext`;
+    }
+    if (options.subscribeChildren && [interfaces_1.IScope.in_context, interfaces_1.IScope.tree_in_context].includes(options.subscribeChildScope))
+        return _checkContextError(ids.contextId, context);
+}
+function _checkContextError(contextId, context) {
+    if (context instanceof spinal_model_graph_1.SpinalContext)
+        return;
+    let error, subString;
+    if (!contextId)
+        subString = `you did not specify the context id`;
+    else
+        subString = `${contextId} is not a valid context id`;
+    error = `You try to subscribe some data in context but, ${subString}`;
+    return error;
+}
 //# sourceMappingURL=SocketHandlerUtils.js.map
