@@ -24,44 +24,25 @@
 
 import { Server } from 'socket.io';
 import { config } from './config';
-import { getPortValid, spinalGraphUtils } from './utils';
+import { spinalGraphUtils } from './utils';
 import { SocketHandler } from './socket/socketHandlers';
 import { ISpinalIOMiddleware } from './interfaces';
 import { Middleware } from './Middleware';
 import { SessionStore } from './store';
-import { createAdapter } from '@socket.io/redis-adapter';
-import { Redis } from 'ioredis';
 
 
 export async function runSocketServer(server?: Server, spinalIOMiddleware?: ISpinalIOMiddleware): Promise<Server> {
   let app: any = server || config.server?.port || 8888;
   spinalIOMiddleware = spinalIOMiddleware || new Middleware();
 
-
-  let port = !isNaN(app) ? app : app.address().port;
-  // let redisPort = await getPortValid(parseInt(port) + 1);
-
-  // const redisClient = createClient({ host: 'localhost', port: redisPort });
-  const pubClient = new Redis();
-  const subClient = pubClient.duplicate();
-
-  pubClient.on("error", (err) => {
-    console.log(err);
-  });
-  // redisClient.on('error', err => console.log('Redis Client Error', err));
-
-  const io = new Server(app, { adapter: createAdapter(pubClient, subClient), pingTimeout: 30000, pingInterval: 25000 });
-  // io.adapter(createAdapter(redisClient, subClient));
+  const io = new Server(app, { pingTimeout: 30000, pingInterval: 25000 });
 
   const socketHandler = new SocketHandler(io, spinalIOMiddleware);
   await spinalGraphUtils.init(socketHandler);
   await SessionStore.getInstance().init(spinalIOMiddleware.conn);
 
-
-  // return Promise.all([redisClient.connect(), subClient.connect()]).then(() => {
   console.log('socket server is running');
   return io;
-  // })
 }
 
 ///////////////////////////////////////////////////
