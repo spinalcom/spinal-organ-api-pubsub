@@ -35,7 +35,7 @@ export async function runSocketServer(server?: Server, spinalIOMiddleware?: ISpi
   let app: any = server || config.server?.port || 8888;
   spinalIOMiddleware = spinalIOMiddleware || new Middleware();
 
-  const io = new Server(app, { pingTimeout: 30000, pingInterval: 25000 });
+  const io = new Server(app, { cors: { origin: "*", methods: ["GET", "POST"] }, pingTimeout: 30000, pingInterval: 25000 });
 
   const socketHandler = new SocketHandler(io, spinalIOMiddleware);
   await spinalGraphUtils.init(socketHandler);

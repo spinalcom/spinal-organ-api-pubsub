@@ -60,7 +60,7 @@ function runSocketServer(server, spinalIOMiddleware) {
     return __awaiter(this, void 0, void 0, function* () {
         let app = server || ((_a = config_1.config.server) === null || _a === void 0 ? void 0 : _a.port) || 8888;
         spinalIOMiddleware = spinalIOMiddleware || new Middleware_1.Middleware();
-        const io = new socket_io_1.Server(app, { pingTimeout: 30000, pingInterval: 25000 });
+        const io = new socket_io_1.Server(app, { cors: { origin: "*", methods: ["GET", "POST"] }, pingTimeout: 30000, pingInterval: 25000 });
         const socketHandler = new socketHandlers_1.SocketHandler(io, spinalIOMiddleware);
         yield utils_1.spinalGraphUtils.init(socketHandler);
         yield store_1.SessionStore.getInstance().init(spinalIOMiddleware.conn);
