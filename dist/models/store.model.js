@@ -57,7 +57,7 @@ class PubSubStore extends spinal_core_connectorjs_1.Model {
                         options: id.options,
                     });
                 }
-                return;
+                break;
             }
             return storeLst;
         });
@@ -66,7 +66,7 @@ class PubSubStore extends spinal_core_connectorjs_1.Model {
         return __awaiter(this, void 0, void 0, function* () {
             const storeLst = yield this.getUserStoreLst(userSecretId);
             if (!storeLst)
-                return;
+                return false;
             const index = this.findIndex(storeLst, id);
             if (index === -1)
                 return false;
@@ -139,7 +139,7 @@ class PubSubStore extends spinal_core_connectorjs_1.Model {
     _loadUserData(userSecretId) {
         let storePtr = this.data[userSecretId];
         if (!storePtr)
-            return;
+            return Promise.resolve(undefined);
         return new Promise((resolve, reject) => {
             if (storePtr instanceof spinal_core_connectorjs_1.Lst)
                 return resolve(storePtr);

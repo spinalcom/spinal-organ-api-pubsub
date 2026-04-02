@@ -24,6 +24,7 @@
 
 export const OK_STATUS: string = "success";
 export const NOK_STATUS: string = "error";
+
 export const SUBSCRIBE_EVENT: string = "subscribe";
 export const UNSUBSCRIBE_EVENT: string = "unsubscribe";
 export const SUBSCRIBED: string = "subscribed";

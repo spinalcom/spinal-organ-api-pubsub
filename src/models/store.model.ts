@@ -22,10 +22,10 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 
-import {Lst, Model, Ptr, spinalCore} from 'spinal-core-connectorjs';
-import {INodeId, ISubscribeOptions} from '../interfaces';
-import {v4 as uuidv4} from 'uuid';
-import {resolve} from 'path';
+import { Lst, Model, Ptr, spinalCore } from 'spinal-core-connectorjs';
+import { INodeId, ISubscribeOptions } from '../interfaces';
+import { v4 as uuidv4 } from 'uuid';
+import { resolve } from 'path';
 
 export class PubSubStore extends Model {
   constructor() {
@@ -54,7 +54,7 @@ export class PubSubStore extends Model {
         });
       }
 
-      return;
+      break;
     }
 
     return storeLst;
@@ -65,7 +65,7 @@ export class PubSubStore extends Model {
     id: INodeId
   ): Promise<boolean> {
     const storeLst = await this.getUserStoreLst(userSecretId);
-    if (!storeLst) return;
+    if (!storeLst) return false;
 
     const index = this.findIndex(storeLst, id);
     if (index === -1) return false;
@@ -153,7 +153,7 @@ export class PubSubStore extends Model {
 
   private _loadUserData(userSecretId: string): Promise<void | spinal.Lst> {
     let storePtr = this.data[userSecretId];
-    if (!storePtr) return;
+    if (!storePtr) return Promise.resolve(undefined);
     return new Promise((resolve, reject) => {
       if (storePtr instanceof Lst) return resolve(storePtr);
       if (storePtr instanceof Ptr)

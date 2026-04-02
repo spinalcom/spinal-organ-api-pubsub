@@ -55,13 +55,17 @@ class SessionStore {
     }
     getSubscribedData(userId) {
         return __awaiter(this, void 0, void 0, function* () {
+            if (!this.store)
+                return [];
             const data = yield this.store.getUserStoreLst(userId);
             return (data && data.get()) || [];
         });
     }
     saveSubscriptionData(userId, data) {
-        // return this.store.addToStore(userId, data); // uncomment this line to save data
-        return;
+        return __awaiter(this, void 0, void 0, function* () {
+            // return this.store.addToStore(userId, data); // uncomment this line to save data
+            return;
+        });
     }
     deleteSubscriptionData(userId, data) {
         if (!Array.isArray(data))
@@ -86,6 +90,8 @@ class SessionStore {
         });
     }
     _reInitializeStore() {
+        if (!this.store)
+            return;
         console.log('reset websocket session storage');
         this.store.reset();
     }

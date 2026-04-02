@@ -54,11 +54,12 @@ class Middleware {
         this.config = config_1.config;
         if (argConfig)
             this.config = argConfig;
-        if (connect)
+        if (connect) {
             this.conn = connect;
+        }
         else {
-            const protocol = this.config.spinalConnector.protocol ? this.config.spinalConnector.protocol : 'http';
-            const host = this.config.spinalConnector.host + (this.config.spinalConnector.port ? `:${this.config.spinalConnector.port}` : '');
+            const protocol = this.config.spinalConnector.protocol ? this.config.spinalConnector.protocol : "http";
+            const host = this.config.spinalConnector.host + (this.config.spinalConnector.port ? `:${this.config.spinalConnector.port}` : "");
             const login = `${this.config.spinalConnector.user}:${this.config.spinalConnector.password}`;
             const connect_opt = `${protocol}://${login}@${host}/`;
             this.conn = spinal_core_connectorjs_1.spinalCore.connect(connect_opt);
@@ -83,10 +84,8 @@ class Middleware {
     }
     getNode(nodeId, contextId) {
         return __awaiter(this, void 0, void 0, function* () {
-            //@ts-ignore
-            if (!isNaN(nodeId)) {
+            if (!isNaN(Number(nodeId))) {
                 const node = yield this.getNodeWithServerId(nodeId);
-                //@ts-ignore
                 if (node && node instanceof spinal_model_graph_1.SpinalNode)
                     spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(node);
                 return node;
@@ -96,7 +95,7 @@ class Middleware {
     }
     getNodeWithServerId(server_id) {
         return new Promise((resolve) => {
-            if (typeof spinal_core_connectorjs_1.FileSystem._objects[server_id] !== 'undefined') {
+            if (typeof spinal_core_connectorjs_1.FileSystem._objects[server_id] !== "undefined") {
                 return resolve(spinal_core_connectorjs_1.FileSystem._objects[server_id]);
             }
             this.conn.load_ptr(server_id, (node) => {
@@ -109,23 +108,27 @@ class Middleware {
             if (nodeId === contextId) {
                 return this.getContext(nodeId);
             }
+            if (!contextId)
+                throw new Error("ContextId is required when nodeId is not a static id");
             const context = yield this.getContext(contextId);
-            if (context instanceof spinal_model_graph_1.SpinalContext) {
-                const found = yield context.findInContext(context, (node, stop) => {
-                    if (node.getId().get() === nodeId) {
-                        // @ts-ignore
-                        spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(node);
+            if (!(context instanceof spinal_model_graph_1.SpinalContext))
+                throw new Error("Context not found");
+            const found = yield context.findInContext(context, (node, stop) => {
+                if (node.getId().get() === nodeId) {
+                    spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(node);
+                    if (stop)
                         stop();
-                        return true;
-                    }
-                    return false;
-                });
-                return Array.isArray(found) ? found[0] : found;
-            }
+                    return true;
+                }
+                return false;
+            });
+            return Array.isArray(found) ? found[0] : found;
         });
     }
     getGraph() {
         return __awaiter(this, void 0, void 0, function* () {
+            if (!this.iteratorGraph)
+                return;
             const g = yield this.iteratorGraph.next();
             return g.value;
         });
@@ -137,25 +140,23 @@ class Middleware {
     }
     getContext(contextId) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (typeof contextId === 'undefined')
+            if (typeof contextId === "undefined")
                 return;
-            let node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(contextId.toString());
-            if (node)
-                return node;
-            node = spinal_core_connectorjs_1.FileSystem._objects[contextId];
-            if (node)
-                return node;
+            let context = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(contextId.toString());
+            if (context)
+                return context;
+            context = spinal_core_connectorjs_1.FileSystem._objects[Number(contextId)];
+            if (context)
+                return context;
             const graph = yield this.getGraph();
-            if (graph) {
-                const contexts = yield graph.getChildren();
-                return contexts.find((el) => {
-                    if (el.getId().get() === contextId || el._server_id == contextId) {
-                        //@ts-ignore
-                        spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(el);
-                        return true;
-                    }
-                    return false;
-                });
+            if (!graph)
+                return;
+            const contexts = yield graph.getChildren();
+            for (const ctx of contexts) {
+                if (ctx.getId().get() === contextId || ctx._server_id == contextId) {
+                    spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(ctx);
+                    return ctx;
+                }
             }
         });
     }

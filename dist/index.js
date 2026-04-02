@@ -55,12 +55,25 @@ const socketHandlers_1 = require("./socket/socketHandlers");
 const Middleware_1 = require("./Middleware");
 Object.defineProperty(exports, "Middleware", { enumerable: true, get: function () { return Middleware_1.Middleware; } });
 const store_1 = require("./store");
+const redis_adapter_1 = require("@socket.io/redis-adapter");
+const ioredis_1 = require("ioredis");
 function runSocketServer(server, spinalIOMiddleware) {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
         let app = server || ((_a = config_1.config.server) === null || _a === void 0 ? void 0 : _a.port) || 8888;
         spinalIOMiddleware = spinalIOMiddleware || new Middleware_1.Middleware();
-        const io = new socket_io_1.Server(app, { cors: { origin: "*", methods: ["GET", "POST"] }, pingTimeout: 30000, pingInterval: 25000 });
+        const pubClient = new ioredis_1.Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+        const subClient = pubClient.duplicate();
+        pubClient.on('error', (err) => console.error('Redis Pub Client Error:', err));
+        subClient.on("error", (err) => console.error("Redis sub error:", err));
+        const params = {
+            cors: { origin: "*", methods: ["GET", "POST"] },
+            pingTimeout: 30000,
+            pingInterval: 25000,
+            transports: ['websocket'],
+            adapter: (0, redis_adapter_1.createAdapter)(pubClient, subClient),
+        };
+        const io = new socket_io_1.Server(app, params);
         const socketHandler = new socketHandlers_1.SocketHandler(io, spinalIOMiddleware);
         yield utils_1.spinalGraphUtils.init(socketHandler);
         yield store_1.SessionStore.getInstance().init(spinalIOMiddleware.conn);

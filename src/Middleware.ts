@@ -22,24 +22,25 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 
-import { FileSystem, spinalCore } from 'spinal-core-connectorjs';
-import { ISpinalIOMiddleware, IConfig } from './interfaces';
-import { config } from './config';
-import { SpinalContext, SpinalGraph, SpinalNode } from 'spinal-model-graph';
-import { SpinalGraphService } from 'spinal-env-viewer-graph-service';
+import { FileSystem, spinalCore } from "spinal-core-connectorjs";
+import { ISpinalIOMiddleware, IConfig } from "./interfaces";
+import { config } from "./config";
+import { SpinalContext, SpinalGraph, SpinalNode } from "spinal-model-graph";
+import { SpinalGraphService } from "spinal-env-viewer-graph-service";
 
 export class Middleware implements ISpinalIOMiddleware {
   config: IConfig = <any>config;
   conn: FileSystem;
-  loadedPtr: Map<number, any>;
-  iteratorGraph: AsyncGenerator<SpinalGraph, never>;
+  // loadedPtr: Map<number, any>;
+  iteratorGraph: AsyncGenerator<SpinalGraph, never> | undefined;
 
   constructor(connect?: spinal.FileSystem, argConfig?: IConfig) {
     if (argConfig) this.config = argConfig;
-    if (connect) this.conn = connect;
-    else {
-      const protocol = this.config.spinalConnector.protocol ? this.config.spinalConnector.protocol : 'http';
-      const host = this.config.spinalConnector.host + (this.config.spinalConnector.port ? `:${this.config.spinalConnector.port}` : '');
+    if (connect) {
+      this.conn = connect;
+    } else {
+      const protocol = this.config.spinalConnector.protocol ? this.config.spinalConnector.protocol : "http";
+      const host = this.config.spinalConnector.host + (this.config.spinalConnector.port ? `:${this.config.spinalConnector.port}` : "");
       const login = `${this.config.spinalConnector.user}:${this.config.spinalConnector.password}`;
 
       const connect_opt = `${protocol}://${login}@${host}/`;
@@ -51,32 +52,25 @@ export class Middleware implements ISpinalIOMiddleware {
 
   private async *geneGraph(): AsyncGenerator<SpinalGraph<any>, never> {
     const init = new Promise<SpinalGraph<any>>((resolve, reject) => {
-      spinalCore.load(
-        this.conn,
-        this.config.file.path,
-        (graph: any) => {
-          resolve(graph);
-        },
-        () => {
-          console.error(`File does not exist in location ${config.file.path}`);
-          reject();
-        }
+      spinalCore.load(this.conn, this.config.file.path, (graph: any) => {
+        resolve(graph);
+      }, () => {
+        console.error(`File does not exist in location ${config.file.path}`);
+        reject();
+      },
       );
     });
+
     const graph = await init;
     while (true) {
       yield graph;
     }
   }
 
-  public async getNode(
-    nodeId: string | number,
-    contextId?: string | number
-  ): Promise<SpinalNode> {
-    //@ts-ignore
-    if (!isNaN(nodeId)) {
+  public async getNode(nodeId: string | number, contextId?: string | number): Promise<SpinalNode | undefined> {
+
+    if (!isNaN(Number(nodeId))) {
       const node = await this.getNodeWithServerId(<number>nodeId);
-      //@ts-ignore
       if (node && node instanceof SpinalNode) SpinalGraphService._addNode(node);
 
       return node;
@@ -85,9 +79,9 @@ export class Middleware implements ISpinalIOMiddleware {
     return this.getNodeWithStaticId(nodeId.toString(), contextId);
   }
 
-  public getNodeWithServerId(server_id: number): Promise<SpinalNode> {
+  public getNodeWithServerId(server_id: number): Promise<SpinalNode | undefined> {
     return new Promise((resolve) => {
-      if (typeof FileSystem._objects[server_id] !== 'undefined') {
+      if (typeof FileSystem._objects[server_id] !== "undefined") {
         return resolve(FileSystem._objects[server_id] as SpinalNode);
       }
       this.conn.load_ptr(server_id, (node) => {
@@ -96,60 +90,63 @@ export class Middleware implements ISpinalIOMiddleware {
     });
   }
 
-  public async getNodeWithStaticId(
-    nodeId: string,
-    contextId: string | number
-  ): Promise<SpinalNode> {
+  public async getNodeWithStaticId(nodeId: string, contextId?: string | number): Promise<SpinalNode | undefined> {
     if (nodeId === contextId) {
       return this.getContext(nodeId);
     }
 
+    if (!contextId) throw new Error("ContextId is required when nodeId is not a static id");
+
     const context = await this.getContext(contextId);
+    if (!(context instanceof SpinalContext)) throw new Error("Context not found");
 
-    if (context instanceof SpinalContext) {
-      const found = await context.findInContext(context, (node, stop) => {
-        if (node.getId().get() === nodeId) {
-          // @ts-ignore
-          SpinalGraphService._addNode(node);
-          stop();
-          return true;
-        }
+    const found = await context.findInContext(context, (node, stop) => {
+      if (node.getId().get() === nodeId) {
+        SpinalGraphService._addNode(node);
+        if (stop) stop();
+        return true;
+      }
 
-        return false;
-      });
+      return false;
+    });
 
-      return Array.isArray(found) ? found[0] : found;
-    }
+    return Array.isArray(found) ? found[0] : found;
+
   }
 
-  public async getGraph(): Promise<SpinalGraph> {
+  public async getGraph(): Promise<SpinalGraph | undefined> {
+    if (!this.iteratorGraph) return;
+
     const g = await this.iteratorGraph.next();
     return g.value;
   }
 
-  public async getProfileGraph(): Promise<SpinalGraph> {
+  public async getProfileGraph(): Promise<SpinalGraph | undefined> {
     return this.getGraph();
   }
 
-  async getContext(contextId: number | string): Promise<SpinalContext> {
-    if (typeof contextId === 'undefined') return;
+  async getContext(contextId: number | string): Promise<SpinalContext | undefined> {
+    if (typeof contextId === "undefined") return;
 
-    let node = SpinalGraphService.getRealNode(contextId.toString());
-    if (node) return node;
-    node = FileSystem._objects[contextId];
-    if (node) return node;
+    let context = SpinalGraphService.getRealNode(contextId.toString());
+    if (context) return context;
+
+    context = FileSystem._objects[Number(contextId)] as SpinalContext;
+    if (context) return context;
+
+
     const graph = await this.getGraph();
+    if (!graph) return;
 
-    if (graph) {
-      const contexts = await graph.getChildren();
-      return contexts.find((el) => {
-        if (el.getId().get() === contextId || el._server_id == contextId) {
-          //@ts-ignore
-          SpinalGraphService._addNode(el);
-          return true;
-        }
-        return false;
-      });
+    const contexts = await graph.getChildren();
+
+    for (const ctx of contexts) {
+      if (ctx.getId().get() === contextId || ctx._server_id == contextId) {
+        SpinalGraphService._addNode(ctx);
+        return ctx;
+      }
     }
+
   }
+
 }

@@ -8,7 +8,7 @@ export declare class SessionStore {
     static getInstance(): SessionStore;
     init(connect: spinal.FileSystem): Promise<PubSubStore>;
     getSubscribedData(userId: string): Promise<INodeId[]>;
-    saveSubscriptionData(userId: string, data: INodeId | INodeId[]): Promise<Lst>;
+    saveSubscriptionData(userId: string, data: INodeId | INodeId[]): Promise<Lst | void>;
     deleteSubscriptionData(userId: string, data: INodeId | INodeId[]): void;
     private _loadOrMakeConfigFile;
     private _createFile;

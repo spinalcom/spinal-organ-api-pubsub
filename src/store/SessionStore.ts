@@ -32,7 +32,7 @@ const storeName = 'pubsubStore.db';
 
 export class SessionStore {
   private static instance: SessionStore;
-  private store: PubSubStore;
+  private store: PubSubStore | undefined;
 
   private constructor() { }
 
@@ -52,11 +52,13 @@ export class SessionStore {
   }
 
   public async getSubscribedData(userId: string): Promise<INodeId[]> {
+    if (!this.store) return [];
+
     const data = await this.store.getUserStoreLst(userId);
     return (data && data.get()) || [];
   }
 
-  public saveSubscriptionData(userId: string, data: INodeId | INodeId[]): Promise<Lst> {
+  public async saveSubscriptionData(userId: string, data: INodeId | INodeId[]): Promise<Lst | void> {
     // return this.store.addToStore(userId, data); // uncomment this line to save data
     return;
   }
@@ -99,6 +101,8 @@ export class SessionStore {
   }
 
   private _reInitializeStore() {
+    if (!this.store) return;
+
     console.log('reset websocket session storage');
     this.store.reset();
   }

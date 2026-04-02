@@ -29,13 +29,28 @@ import { SocketHandler } from './socket/socketHandlers';
 import { ISpinalIOMiddleware } from './interfaces';
 import { Middleware } from './Middleware';
 import { SessionStore } from './store';
-
+import { createAdapter } from '@socket.io/redis-adapter';
+import { Redis } from 'ioredis';
 
 export async function runSocketServer(server?: Server, spinalIOMiddleware?: ISpinalIOMiddleware): Promise<Server> {
   let app: any = server || config.server?.port || 8888;
   spinalIOMiddleware = spinalIOMiddleware || new Middleware();
 
-  const io = new Server(app, { cors: { origin: "*", methods: ["GET", "POST"] }, pingTimeout: 30000, pingInterval: 25000 });
+  const pubClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+  const subClient = pubClient.duplicate();
+
+  pubClient.on('error', (err) => console.error('Redis Pub Client Error:', err));
+  subClient.on("error", (err) => console.error("Redis sub error:", err));
+
+  const params = {
+    cors: { origin: "*", methods: ["GET", "POST"] },
+    pingTimeout: 30000,
+    pingInterval: 25000,
+    transports: ['websocket'],
+    adapter: createAdapter(pubClient, subClient),
+  }
+
+  const io = new Server(app, params as any);
 
   const socketHandler = new SocketHandler(io, spinalIOMiddleware);
   await spinalGraphUtils.init(socketHandler);

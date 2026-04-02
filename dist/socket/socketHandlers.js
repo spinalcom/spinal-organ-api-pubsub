@@ -54,7 +54,7 @@ class SocketHandler {
             data[sessionId] = [];
         data[sessionId].push(subscription_data);
         // remove duplicates
-        data[sessionId] = data[sessionId].filter((v, i, a) => a.findIndex((v2) => ["nodeId", "contextId"].every((k) => v2[k] === v[k])) === i);
+        data[sessionId] = Array.from(new Set(data[sessionId].map((v) => JSON.stringify(v)))).map((v) => JSON.parse(v));
         this.subscriptionMap.set(eventName, data);
     }
     getSubscriptionData(eventName, sessionId) {
@@ -82,17 +82,18 @@ class SocketHandler {
     }
     listenUnsubscribeEvent(socket) {
         socket.on(constants_1.UNSUBSCRIBE_EVENT, (...args) => __awaiter(this, void 0, void 0, function* () {
-            const sessionId = socket["sessionId"];
+            const sessionId = this._getSessionId(socket);
             console.log("received unsubscribe request from", sessionId);
-            const { obj: nodes, ids: idsFormatted } = yield this._checkAndFormatParams(socket, args);
-            const result = idsFormatted.map((item) => (0, utils_1.getRoomNameFunc)(item.nodeId, item.contextId, nodes, item.options));
-            const idsToRemove = yield this._leaveRoom(socket, result, nodes);
+            const nodes = yield this._checkAndFormatParams(socket, args);
+            const result = nodes.map((item) => (0, utils_1.checkAndFormatNodeData)(item));
+            const idsToRemove = yield this._leaveRoom(socket, result);
             yield sessionStore.deleteSubscriptionData(sessionId, idsToRemove);
         }));
     }
     listenDisconnectEvent(socket) {
         socket.on("disconnect", (reason) => __awaiter(this, void 0, void 0, function* () {
-            console.log(`${socket["sessionId"]} is disconnected for reason : ${reason}`);
+            const sessionId = this._getSessionId(socket);
+            console.log(`${sessionId} is disconnected for reason : ${reason}`);
         }));
     }
     sendSocketEvent(node, model, eventName, action, socket) {
@@ -118,57 +119,83 @@ class SocketHandler {
     _subscribe(socket, ids, save = true) {
         return __awaiter(this, void 0, void 0, function* () {
             const sessionId = this._getSessionId(socket);
-            const { obj: nodes, ids: idsFormatted } = yield this._checkAndFormatParams(socket, ids);
-            const result = idsFormatted.map((item) => (0, utils_1.getRoomNameFunc)(item.nodeId, item.contextId, nodes, item.options));
+            const nodesData = yield this._checkAndFormatParams(socket, ids);
+            const result = nodesData.map((nodeData) => (0, utils_1.checkAndFormatNodeData)(nodeData));
             // for (const obj of result) {
             // 	socket.emit(SUBSCRIBED, obj);
             // }
-            const idsToSave = yield this._launchNodeBinding(socket, result, nodes, sessionId);
-            if (save)
-                yield sessionStore.saveSubscriptionData(sessionId, idsToSave);
+            const idsToSave = yield this._launchNodeBinding(socket, result, sessionId);
+            // if (save) await sessionStore.saveSubscriptionData(sessionId, idsToSave);
         });
     }
-    _launchNodeBinding(socket, result, nodes, sessionId) {
-        return result.reduce((prom, { error, nodeId, status, eventNames, options }) => __awaiter(this, void 0, void 0, function* () {
-            const arr = yield prom;
-            if (error && status !== constants_1.OK_STATUS)
-                return arr;
-            const { node, contextNode, subscription_data } = nodes[nodeId];
-            const recursionArg = { node, context: contextNode, options, eventName: undefined, socket, subscription_data };
-            yield utils_1.spinalGraphUtils.bindNodeChildren(recursionArg);
-            arr.push({ nodeId: node.getId().get(), contextId: contextNode.getId().get(), options });
+    _launchNodeBinding(socket, result, sessionId) {
+        const promises = [];
+        for (const item of result) {
+            const { error, nodeId, status, options } = item;
+            if (error || status === constants_1.NOK_STATUS) {
+                // if there's an error, we emit it to the socket and skip the binding for this node
+                socket.emit(constants_1.SUBSCRIBED, { error, nodeId, status });
+                continue;
+            }
+            // const { node, contextNode, subscription_data } = nodes[nodeId];
+            const recursionArg = { node: item.node, context: item.contextNode, options, eventName: undefined, socket, subscription_data: item.subscription_data };
+            promises.push(this._bindNodeChildren(recursionArg));
+        }
+        return Promise.allSettled(promises).then((result) => {
+            const arr = [];
+            for (const element of result) {
+                if (element.status === "fulfilled") {
+                    const value = element.value;
+                    arr.push(value);
+                }
+            }
             return arr;
-        }), Promise.resolve([]));
+        });
+        // return result.reduce(async (prom, { error, nodeId, status, eventNames, options }) => {
+        // 	const arr = await prom;
+        // 	if (error && status !== OK_STATUS) return arr;
+        // 	const { node, contextNode, subscription_data } = nodes[nodeId];
+        // 	const recursionArg: IRecursionArg = { node, context: contextNode, options, eventName: undefined, socket, subscription_data };
+        // 	await spinalGraphUtils.bindNodeChildren(recursionArg);
+        // 	arr.push({ nodeId: node.getId().get(), contextId: contextNode?.getId().get(), options });
+        // 	return arr;
+        // }, Promise.resolve([]));
+    }
+    _bindNodeChildren(arg) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return utils_1.spinalGraphUtils.bindNodeChildren(arg)
+                .then((result) => {
+                var _a, _b;
+                if (!arg.node)
+                    throw new Error("Node not found");
+                return { nodeId: (_a = arg.node) === null || _a === void 0 ? void 0 : _a.getId().get(), contextId: (_b = arg.context) === null || _b === void 0 ? void 0 : _b.getId().get(), options: arg.options };
+            });
+        });
     }
     _joinRoom(socket, subscription_data, eventNames) {
         const sessionId = this._getSessionId(socket);
         return eventNames.map((roomId) => {
-            this.saveSubscriptionData(sessionId, roomId, subscription_data);
+            // this.saveSubscriptionData(sessionId, roomId, subscription_data);
             socket.join(roomId);
             return roomId;
         });
     }
-    _leaveRoom(socket, result, nodes) {
+    _leaveRoom(socket, result) {
+        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
-            return result.reduce((prom, { error, nodeId, status, options }) => __awaiter(this, void 0, void 0, function* () {
-                let arr = yield prom;
-                if (!error && status === constants_1.OK_STATUS) {
-                    const { node, contextNode, subscription_data } = nodes[nodeId];
-                    const recursionArg = { node, context: contextNode, options, eventName: undefined, socket, subscription_data };
-                    // await spinalGraphUtils.bindNodeChildren(recursionArg, (arg: IRecursionArg) => {
-                    // 	if (!arg.eventName || !arg.socket) return;
-                    // 	arg.socket.emit(UNSUBSCRIBED, arg.eventName);
-                    // 	arg.socket.leave(arg.eventName);
-                    // });
-                    // await spinalGraphUtils.bindNodeChildren(recursionArg, (arg: IRecursionArg) => {
-                    // 	if (!arg.eventName || !arg.socket) return;
-                    // 	arg.socket.emit(UNSUBSCRIBED, arg.eventName);
-                    // 	arg.socket.leave(arg.eventName);
-                    // });
-                    arr.push({ nodeId: node.getId().get(), contextId: contextNode.getId().get(), options });
-                }
-                return arr;
-            }), Promise.resolve([]));
+            const resultFiltered = [];
+            for (const item of result) {
+                const { error, nodeId, status, options } = item;
+                if (error && status !== constants_1.OK_STATUS)
+                    continue;
+                // const { node, contextNode } = nodes[nodeId];
+                if (!item.node)
+                    continue;
+                //TODO : socket.leave for all rooms related to the node
+                // I don't call socket.leave because not integredated yet
+                resultFiltered.push({ nodeId: (_a = item.node) === null || _a === void 0 ? void 0 : _a.getId().get(), contextId: (_b = item.contextNode) === null || _b === void 0 ? void 0 : _b.getId().get(), options });
+            }
+            return resultFiltered;
         });
     }
     _checkAndFormatParams(socket, args, oldIds) {
@@ -178,8 +205,8 @@ class SocketHandler {
         return (0, utils_1.checkAndFormatIds)(socket, this.spinalIOMiddleware, ids, options);
     }
     _getSessionId(socket) {
-        if (socket["sessionId"])
-            return socket["sessionId"];
+        if (socket.sessionId)
+            return socket.sessionId;
         const { auth, header, query } = socket.handshake;
         return (auth === null || auth === void 0 ? void 0 : auth.sessionId) || (header === null || header === void 0 ? void 0 : header.sessionId) || (query === null || query === void 0 ? void 0 : query.sessionId);
     }
