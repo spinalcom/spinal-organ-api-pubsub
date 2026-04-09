@@ -22,7 +22,7 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 
-import { Server } from 'socket.io';
+import { Server, ServerOptions } from 'socket.io';
 import { config } from './config';
 import { spinalGraphUtils } from './utils';
 import { SocketHandler } from './socket/socketHandlers';
@@ -36,21 +36,28 @@ export async function runSocketServer(server?: Server, spinalIOMiddleware?: ISpi
   let app: any = server || config.server?.port || 8888;
   spinalIOMiddleware = spinalIOMiddleware || new Middleware();
 
-  const pubClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-  const subClient = pubClient.duplicate();
-
-  pubClient.on('error', (err) => console.error('Redis Pub Client Error:', err));
-  subClient.on("error", (err) => console.error("Redis sub error:", err));
-
-  const params = {
+  const params: Partial<ServerOptions> = {
     cors: { origin: "*", methods: ["GET", "POST"] },
     pingTimeout: 30000,
     pingInterval: 25000,
     transports: ['websocket'],
-    adapter: createAdapter(pubClient, subClient),
+  };
+
+  const redisIsActive = process.env.ENABLE_REDIS_CACHE == "1";
+
+  if (redisIsActive) {
+    console.log('Redis cache is enabled, setting up Redis adapter for Socket.IO');
+
+    const pubClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+    const subClient = pubClient.duplicate();
+
+    pubClient.on('error', (err) => console.error('Redis Pub Client Error:', err));
+    subClient.on("error", (err) => console.error("Redis sub error:", err));
+
+    params.adapter = createAdapter(pubClient, subClient);
   }
 
-  const io = new Server(app, params as any);
+  const io = new Server(app, params);
 
   const socketHandler = new SocketHandler(io, spinalIOMiddleware);
   await spinalGraphUtils.init(socketHandler);
