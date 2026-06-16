@@ -22,76 +22,76 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 
-import { ISubscribeOptions, INodeId, IGetNodeRes, IScope, INodeData, ISpinalIOMiddleware } from '../interfaces';
-import { OK_STATUS, NOK_STATUS } from '../constants';
-import { SpinalContext, SpinalNode } from 'spinal-model-graph';
-import * as lodash from 'lodash';
-import { Socket } from 'socket.io';
+import { ISubscribeOptions, INodeId, IGetNodeRes, IScope, INodeData, ISpinalIOMiddleware } from "../interfaces";
+import { OK_STATUS, NOK_STATUS } from "../constants";
+import { SpinalContext, SpinalNode } from "spinal-model-graph";
+import * as lodash from "lodash";
+import { Socket } from "socket.io";
 import { IdTypes, UpdateDataType } from "../types";
 
-const net = require('net');
+const net = require("net");
 
 export async function getPortValid(port: number = 1): Promise<number> {
-  let validPort = port;
-  let success = false;
+	let validPort = port;
+	let success = false;
 
-  do {
-    success = await checkPortAvailability(validPort);
-    if (!success) {
-      validPort++;
-    }
-  } while (!success);
+	do {
+		success = await checkPortAvailability(validPort);
+		if (!success) {
+			validPort++;
+		}
+	} while (!success);
 
-  return validPort;
+	return validPort;
 }
 
 function checkPortAvailability(port: number): Promise<boolean> {
-  return new Promise((resolve) => {
-    const server = net.createServer();
+	return new Promise((resolve) => {
+		const server = net.createServer();
 
-    server.once('error', () => resolve(false));
+		server.once("error", () => resolve(false));
 
-    server.once('listening', () => {
-      server.close();
-      resolve(true);  // Le port est disponible
-    });
+		server.once("listening", () => {
+			server.close();
+			resolve(true); // Le port est disponible
+		});
 
-    server.listen(port);
-  });
+		server.listen(port);
+	});
 }
 
 export async function checkAndFormatIds(socket: Socket, spinalIOMiddleware: ISpinalIOMiddleware, nodeIds: (IdTypes | INodeId)[], options: ISubscribeOptions): Promise<INodeData[]> {
-  const idsFormatted = _structureDataFunc(nodeIds, options);
-  const nodes = await _getNodes(socket, spinalIOMiddleware, idsFormatted);
-  return _removeDuplicate(nodes);
+	const idsFormatted = _structureDataFunc(nodeIds, options);
+	const nodes = await _getNodes(socket, spinalIOMiddleware, idsFormatted);
+	return _removeDuplicate(nodes);
 }
 
 export function checkAndFormatNodeData(nodeData: INodeData): IGetNodeRes {
+	const { node, contextNode, error: _error, nodeId, contextId, options } = nodeData;
 
-  const { node, contextNode, error: _error, nodeId, contextId, options } = nodeData;
+	if (!node) return { error: _error || `the node ${nodeId} is not found`, nodeId, status: NOK_STATUS, node, contextNode };
 
-  if (!node) return { error: _error || `the node ${nodeId} is not found`, nodeId, status: NOK_STATUS, node, contextNode };
+	let error = _error || _checkError({ nodeId, contextId }, node, contextNode, options);
+	if (error) return { error, nodeId, status: NOK_STATUS, node, contextNode };
 
-  let error = _error || _checkError({ nodeId, contextId }, node, contextNode, options);
-  if (error) return { error, nodeId, status: NOK_STATUS, node, contextNode };
+	let roomId = node.getId().get();
 
-  let roomId = node.getId().get();
-
-  return { error: error || "", nodeId, status: OK_STATUS, eventNames: [roomId], options, node, contextNode };
+	return { error: error || "", nodeId, status: OK_STATUS, eventNames: [roomId], options, node, contextNode };
 }
 
 export async function _formatNode(node: SpinalNode, model?: UpdateDataType): Promise<any> {
-  if (model) {
-    return {
-      dynamicId: model?.dynamicId || node._server_id,
-      info: model.info,
-      element: model.element,
-    };
-  }
+	if (model) {
+		return {
+			dynamicId: model?.dynamicId || node._server_id,
+			info: model.info,
+			element: model.element,
+			...(model.attributes ? { attributes: model.attributes } : {}),
+		};
+	}
 
-  const info = node.info;
-  const element = await node.getElement(true);
-  return { dynamicId: node._server_id, info: info.get(), element: element && element.get() };
+	const info = node.info;
+	const element = await node.getElement(true);
+	return { dynamicId: node._server_id, info: info.get(), element: element && element.get() };
 }
 
 /////////////////////////////////////////////////////////
@@ -99,122 +99,115 @@ export async function _formatNode(node: SpinalNode, model?: UpdateDataType): Pro
 /////////////////////////////////////////////////////////
 
 function _structureDataFunc(ids: (IdTypes | INodeId)[], options: ISubscribeOptions): INodeId[] {
-  ids = lodash.flattenDeep(ids);
+	ids = lodash.flattenDeep(ids);
 
-  return ids.map((id) => ({
-    ..._formatId(id),
-    options: _getOptions(id) || options,
-  }));
+	return ids.map((id) => ({
+		..._formatId(id),
+		options: options || _getOptions(id),
+	}));
 }
 
 function _getNodes(socket: Socket, spinalMiddleware: ISpinalIOMiddleware, ids: INodeId[]): Promise<INodeData[]> {
+	const promises = ids.map(async ({ nodeId, contextId, options }) => {
+		const res: INodeData = {
+			subscription_data: { nodeId, contextId },
+			nodeId,
+			contextId,
+			node: undefined,
+			contextNode: undefined,
+			options,
+			error: undefined,
+		};
 
-  const promises = ids.map(async ({ nodeId, contextId, options }) => {
-    const res: INodeData = {
-      subscription_data: { nodeId, contextId },
-      nodeId,
-      contextId,
-      node: undefined,
-      contextNode: undefined,
-      options,
-      error: undefined,
-    };
+		try {
+			res.contextNode = await spinalMiddleware.getContext(contextId as string, socket);
+			res.node = await spinalMiddleware.getNode(nodeId as string, contextId as string, socket);
+		} catch (error) {
+			res.error = (error as Error).message;
+		}
 
-    try {
-      res.contextNode = await spinalMiddleware.getContext(contextId as string, socket);
-      res.node = await spinalMiddleware.getNode(nodeId as string, contextId as string, socket);
-    } catch (error) {
-      res.error = (error as Error).message;
-    }
+		return res;
+	});
 
-    return res;
-  });
-
-  return Promise.all(promises);
+	return Promise.all(promises);
 }
 
 function _formatId(id: IdTypes | INodeId): INodeId {
-  let node: INodeId = { nodeId: "", contextId: undefined };
+	let node: INodeId = { nodeId: "", contextId: undefined };
 
-  if (typeof id === 'string') {
-    const [contextId, nodeId] = id.split('/');
+	if (typeof id === "string") {
+		const [contextId, nodeId] = id.split("/");
 
-    if (contextId && nodeId) {
-      node.nodeId = nodeId;
-      node.contextId = contextId;
+		if (contextId && nodeId) {
+			node.nodeId = nodeId;
+			node.contextId = contextId;
+		} else if (contextId && !nodeId) {
+			node.nodeId = contextId;
+		}
+	} else if (typeof id === "number") {
+		node.nodeId = id as any;
+	} else if (typeof id === "object") {
+		node = id;
+	}
 
-    } else if (contextId && !nodeId) {
-      node.nodeId = contextId;
-    }
-
-  } else if (typeof id === 'number') {
-    node.nodeId = id as any;
-  } else if (typeof id === 'object') {
-    node = id;
-  }
-
-  return node;
+	return node;
 }
 
 function _getOptions(id: IdTypes | INodeId): ISubscribeOptions {
-  if (typeof id === 'string' || typeof id === 'number') return { subscribeChildren: false };
-  if (id.options) return id.options;
+	if (typeof id === "string" || typeof id === "number") return { subscribeChildren: false };
+	if (id.options) return id.options;
 
-  return { subscribeChildren: false };
+	return { subscribeChildren: false };
 }
 
 function _removeDuplicate(nodes: INodeData[]): INodeData[] {
-  const obj: { [key: string]: INodeData } = {};
+	const obj: { [key: string]: INodeData } = {};
 
-  for (const item of nodes) {
-    const { node, contextNode, options, nodeId } = item;
-    const id = _getKey(node!, contextNode, options!);
-    obj[id] = item;
-  }
+	for (const item of nodes) {
+		const { node, contextNode, options, nodeId } = item;
+		const id = _getKey(node!, contextNode, options!);
+		obj[id] = item;
+	}
 
-  return Array.from(Object.values(obj));
+	return Array.from(Object.values(obj));
 }
 
 function _getKey(node: SpinalNode, context: SpinalContext | undefined, options: ISubscribeOptions): string {
+	// join all values with underscore to create a unique key for the subscription
+	//(don't remove undefined or null values because they are important to differentiate between different subscriptions)
+	return `${node?._server_id}_${context?._server_id}_${options?.subscribeChildScope}_${options?.subscribeChildren}`;
 
-  // join all values with underscore to create a unique key for the subscription 
-  //(don't remove undefined or null values because they are important to differentiate between different subscriptions)
-  return `${node?._server_id}_${context?._server_id}_${options?.subscribeChildScope}_${options?.subscribeChildren}`;
-
-  // // remove undefined and null values and join with underscore
-  // const ids = [node?._server_id, context?._server_id, options?.subscribeChildScope, options?.subscribeChildren];
-  // return ids.filter(id => id !== undefined && id !== null).join('_');
+	// // remove undefined and null values and join with underscore
+	// const ids = [node?._server_id, context?._server_id, options?.subscribeChildScope, options?.subscribeChildren];
+	// return ids.filter(id => id !== undefined && id !== null).join('_');
 }
 
-
 function _checkError(ids: { nodeId?: IdTypes; contextId?: IdTypes }, node?: SpinalNode, context?: SpinalContext, options?: ISubscribeOptions) {
+	if (!node || !(node instanceof SpinalNode)) {
+		return !node ? `${ids.nodeId} is not found` : `${ids.nodeId} must be a spinalNode, SpinalContext`;
+	}
 
-  if (!node || !(node instanceof SpinalNode)) {
-    return !node ? `${ids.nodeId} is not found` : `${ids.nodeId} must be a spinalNode, SpinalContext`;
-  }
+	// if the subscription is for children in context, we need to check if the context is valid
+	if (options?.subscribeChildScope && [IScope.in_context, IScope.tree_in_context].includes(options.subscribeChildScope)) {
+		const contextError = _checkContextError(ids.contextId, context!);
+		if (contextError) return contextError;
+	}
 
-  // if the subscription is for children in context, we need to check if the context is valid
-  if (options?.subscribeChildScope && [IScope.in_context, IScope.tree_in_context].includes(options.subscribeChildScope)) {
-    const contextError = _checkContextError(ids.contextId, context!);
-    if (contextError) return contextError;
-  }
+	// if(options?.subscribeChildren && options?.)
 
-
-  // if(options?.subscribeChildren && options?.)
-
-  // if (options?.subscribeChildren && options?.subscribeChildScope !== undefined && [IScope.in_context, IScope.tree_in_context].includes(options.subscribeChildScope))
-  //   return _checkContextError(ids.contextId, context);
+	// if (options?.subscribeChildren && options?.subscribeChildScope !== undefined && [IScope.in_context, IScope.tree_in_context].includes(options.subscribeChildScope))
+	//   return _checkContextError(ids.contextId, context);
 }
 
 function _checkContextError(contextId: IdTypes | undefined, context: SpinalContext) {
-  if (context instanceof SpinalContext) return;
+	if (context instanceof SpinalContext) return;
 
-  let error, subString;
+	let error, subString;
 
-  if (!contextId) subString = `you did not specify the context id`;
-  else subString = `${contextId} is no node found for context id`;
+	if (!contextId) subString = `you did not specify the context id`;
+	else subString = `${contextId} is no node found for context id`;
 
-  error = `You try to subscribe some data in context but, ${subString}`;
+	error = `You try to subscribe some data in context but, ${subString}`;
 
-  return error;
+	return error;
 }

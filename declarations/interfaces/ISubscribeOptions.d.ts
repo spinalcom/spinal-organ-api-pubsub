@@ -8,4 +8,5 @@ export declare enum IScope {
 export interface ISubscribeOptions {
     subscribeChildren?: boolean;
     subscribeChildScope?: IScope;
+    attributes?: boolean;
 }

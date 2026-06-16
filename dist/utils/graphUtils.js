@@ -64,6 +64,7 @@ const interfaces_1 = require("../interfaces");
 const constants_1 = require("../constants");
 const spinal_core_connectorjs_1 = require("spinal-core-connectorjs");
 const lodash = require("lodash");
+const functions_1 = require("./functions");
 const relationToExclude = [spinal_model_timeseries_1.SpinalTimeSeries.relationName];
 class SpinalGraphUtils {
     constructor() {
@@ -141,7 +142,7 @@ class SpinalGraphUtils {
     }
     browseContextTree(data) {
         if (!data.node || !data.context)
-            throw new Error('Node and context must be provided to browse context tree');
+            throw new Error("Node and context must be provided to browse context tree");
         data.node.findInContext(data.context, (foundNode) => {
             this._activeEventSender(foundNode);
             const _data = { node: foundNode, context: data.context, options: {}, socket: data.socket, subscription_data: data.subscription_data };
@@ -152,7 +153,7 @@ class SpinalGraphUtils {
     browseChildNotInContext(data) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!data.node)
-                throw new Error('Node must be provided to browse child not in context');
+                throw new Error("Node must be provided to browse child not in context");
             this._activeEventSender(data.node);
             const eventName = data.node.getId().get();
             const relations = this._getRelationNameNotInContext(data.node);
@@ -164,7 +165,7 @@ class SpinalGraphUtils {
     browseTreeNotInContext(data) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!data.node)
-                throw new Error('Node must be provided to browse tree not in context');
+                throw new Error("Node must be provided to browse tree not in context");
             const nodes = yield this._getTreeNotInContext(data.node);
             const temp = Object.assign({ context: null }, data);
             for (const n of nodes) {
@@ -176,7 +177,7 @@ class SpinalGraphUtils {
     _browseAllChild(data) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!data.node)
-                throw new Error('Node must be provided to browse all child');
+                throw new Error("Node must be provided to browse all child");
             this._activeEventSender(data.node);
             const eventName = data.node.getId().get();
             const relationNames = this._getRelationNames(data.node);
@@ -188,7 +189,7 @@ class SpinalGraphUtils {
     _browseChildInContext(data) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!data.node || !data.context)
-                throw new Error('Node and context must be provided to browse child in context');
+                throw new Error("Node and context must be provided to browse child in context");
             this._activeEventSender(data.node);
             // const eventName = `${data.context.getId().get()}:${data.node.getId().get()}`;
             const eventName = data.node.getId().get();
@@ -287,7 +288,8 @@ class SpinalGraphUtils {
                 if (!this.socketHandler)
                     return;
                 console.log(`[${info.name.get()}] change has been detected in spinalCore`);
-                yield this.socketHandler.sendSocketEvent(node, { dynamicId: node._server_id, info: info.get(), element: element === null || element === void 0 ? void 0 : element.get(), }, eventName);
+                const socketEventData = yield this._getSocketEventData(node, info, element, options);
+                yield this.socketHandler.sendSocketEvent(node, socketEventData, eventName);
             }), 1000);
             const _temp = this.nodeBinded.get(nodeId);
             // check if the node is already binded
@@ -432,6 +434,22 @@ class SpinalGraphUtils {
     _unbindBindProcess(process) {
         const models = process._models;
         return models.forEach((el) => el.unbind(process));
+    }
+    _getSocketEventData(node, info, element, options) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const isTicket = (0, functions_1.isTicketNode)(node === null || node === void 0 ? void 0 : node.getType().get());
+            let useAttributes = options === null || options === void 0 ? void 0 : options.attributes;
+            let attributes = {};
+            let ticketAttributes = {};
+            if (useAttributes || isTicket) {
+                attributes = yield (0, functions_1._getAttributes)(node);
+                ticketAttributes = (0, functions_1.getAndFormatTicketAttributes)(attributes);
+            }
+            let infoFormatted = info.get();
+            if (isTicket)
+                infoFormatted = Object.assign(Object.assign({}, infoFormatted), (ticketAttributes || {})); // add ticket attributes to info if the node is a ticket
+            return Object.assign({ dynamicId: node._server_id, info: infoFormatted, element: element === null || element === void 0 ? void 0 : element.get() }, (useAttributes ? { attributes } : {}));
+        });
     }
 }
 exports.spinalGraphUtils = SpinalGraphUtils.getInstance();

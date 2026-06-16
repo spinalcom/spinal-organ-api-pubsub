@@ -16,4 +16,7 @@ export type UpdateDataType = {
     element: {
         [key: string]: any;
     };
+    attributes?: {
+        [key: string]: any;
+    };
 };

@@ -37,7 +37,7 @@ const interfaces_1 = require("../interfaces");
 const constants_1 = require("../constants");
 const spinal_model_graph_1 = require("spinal-model-graph");
 const lodash = require("lodash");
-const net = require('net');
+const net = require("net");
 function getPortValid(port = 1) {
     return __awaiter(this, void 0, void 0, function* () {
         let validPort = port;
@@ -55,8 +55,8 @@ exports.getPortValid = getPortValid;
 function checkPortAvailability(port) {
     return new Promise((resolve) => {
         const server = net.createServer();
-        server.once('error', () => resolve(false));
-        server.once('listening', () => {
+        server.once("error", () => resolve(false));
+        server.once("listening", () => {
             server.close();
             resolve(true); // Le port est disponible
         });
@@ -85,11 +85,7 @@ exports.checkAndFormatNodeData = checkAndFormatNodeData;
 function _formatNode(node, model) {
     return __awaiter(this, void 0, void 0, function* () {
         if (model) {
-            return {
-                dynamicId: (model === null || model === void 0 ? void 0 : model.dynamicId) || node._server_id,
-                info: model.info,
-                element: model.element,
-            };
+            return Object.assign({ dynamicId: (model === null || model === void 0 ? void 0 : model.dynamicId) || node._server_id, info: model.info, element: model.element }, (model.attributes ? { attributes: model.attributes } : {}));
         }
         const info = node.info;
         const element = yield node.getElement(true);
@@ -102,7 +98,7 @@ exports._formatNode = _formatNode;
 /////////////////////////////////////////////////////////
 function _structureDataFunc(ids, options) {
     ids = lodash.flattenDeep(ids);
-    return ids.map((id) => (Object.assign(Object.assign({}, _formatId(id)), { options: _getOptions(id) || options })));
+    return ids.map((id) => (Object.assign(Object.assign({}, _formatId(id)), { options: options || _getOptions(id) })));
 }
 function _getNodes(socket, spinalMiddleware, ids) {
     const promises = ids.map(({ nodeId, contextId, options }) => __awaiter(this, void 0, void 0, function* () {
@@ -128,8 +124,8 @@ function _getNodes(socket, spinalMiddleware, ids) {
 }
 function _formatId(id) {
     let node = { nodeId: "", contextId: undefined };
-    if (typeof id === 'string') {
-        const [contextId, nodeId] = id.split('/');
+    if (typeof id === "string") {
+        const [contextId, nodeId] = id.split("/");
         if (contextId && nodeId) {
             node.nodeId = nodeId;
             node.contextId = contextId;
@@ -138,16 +134,16 @@ function _formatId(id) {
             node.nodeId = contextId;
         }
     }
-    else if (typeof id === 'number') {
+    else if (typeof id === "number") {
         node.nodeId = id;
     }
-    else if (typeof id === 'object') {
+    else if (typeof id === "object") {
         node = id;
     }
     return node;
 }
 function _getOptions(id) {
-    if (typeof id === 'string' || typeof id === 'number')
+    if (typeof id === "string" || typeof id === "number")
         return { subscribeChildren: false };
     if (id.options)
         return id.options;
@@ -163,7 +159,7 @@ function _removeDuplicate(nodes) {
     return Array.from(Object.values(obj));
 }
 function _getKey(node, context, options) {
-    // join all values with underscore to create a unique key for the subscription 
+    // join all values with underscore to create a unique key for the subscription
     //(don't remove undefined or null values because they are important to differentiate between different subscriptions)
     return `${node === null || node === void 0 ? void 0 : node._server_id}_${context === null || context === void 0 ? void 0 : context._server_id}_${options === null || options === void 0 ? void 0 : options.subscribeChildScope}_${options === null || options === void 0 ? void 0 : options.subscribeChildren}`;
     // // remove undefined and null values and join with underscore

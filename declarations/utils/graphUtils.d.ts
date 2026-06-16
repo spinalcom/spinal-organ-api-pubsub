@@ -1,5 +1,5 @@
-import SocketHandler from '../socket/socketHandlers';
-import { IRecursionArg } from '../interfaces';
+import SocketHandler from "../socket/socketHandlers";
+import { IRecursionArg } from "../interfaces";
 declare class SpinalGraphUtils {
     spinalConnection: spinal.FileSystem;
     private nodeBinded;
@@ -33,6 +33,7 @@ declare class SpinalGraphUtils {
     private _unbindAllNodes;
     private _unbindNode;
     private _unbindBindProcess;
+    private _getSocketEventData;
 }
 export declare const spinalGraphUtils: SpinalGraphUtils;
 export {};
